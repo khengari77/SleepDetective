@@ -2,6 +2,8 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import time
+import cv2 as cv
+
 
 mp_face_mesh = mp.solutions.face_mesh
 mp_face_connections = mp.solutions.face_mesh_connections
@@ -9,8 +11,62 @@ face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_con
 
 mp_drawing = mp.solutions.drawing_utils
 
+
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 
+DEBUG = True
+
+
+
+
+class HeadPose:
+
+    def __init__(self, window_size=100):
+        self.window = deque([0.22]*window_size, maxlen=window_size)
+        self.head_angle = 0
+        self.drowsiness_level = 1
+
+    def take(self, results):
+        landmarks = self.get_landmarks(results)
+        self.head_angle = self.calculate_head_angle(landmarks)
+        self.drowsiness_level = self.calculate_drowsiness()
+
+    def calculate_drowsiness(self):
+        if self.head_angle < 0.22:
+            self.window.append(0)
+        else:
+            self.window.append(1)
+
+        return sum(self.window) / len(self.window)
+
+# TODO
+    def calculate_head_angle(self, coords):
+        # Calculate EAR
+        right_eye_v1 = self.euclidean_distance(coords[160], coords[144])
+        right_eye_v2 = self.euclidean_distance(coords[158], coords[153])
+        right_eye_h = self.euclidean_distance(coords[33], coords[133]) * 2
+        left_eye_v1 = self.euclidean_distance(coords[387], coords[373])
+        left_eye_v2 = self.euclidean_distance(coords[384], coords[381])
+        left_eye_h = self.euclidean_distance(coords[362], coords[263]) * 2
+
+        right_eye = (right_eye_v1 + right_eye_v2) / right_eye_h
+        left_eye = (left_eye_v1 + left_eye_v2) / left_eye_h
+
+        return (right_eye + left_eye) / 2
+
+# TODO maybe this metod isnt needed
+    @staticmethod
+    def euclidean_distance(point1, point2):
+        x1, y1 = point1
+        x2, y2 = point2
+
+        return ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
+
+    def get_landmarks(self, results):
+        return [(int(point.x * self.frame_width),
+                 int(point.y * self.frame_height)) for
+                point in results.multi_face_landmarks[0].landmark]
+  
 
 cap = cv2.VideoCapture(0)
 
