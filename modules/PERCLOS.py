@@ -3,19 +3,19 @@ from collections import deque
 
 class PERCLOS:
 
-    def __init__(self, frame_width, frame_height, window_size=100):
-        self.window = deque([0.22]*window_size, maxlen=window_size)
+    def __init__(self, frame_width, frame_height, window_size):
+        self.window = deque(maxlen=window_size)
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.eye_aspect_ratio = 0
-        self.drowsiness_level = 1
+        self.awareness_level = 1
 
     def take(self, landmarks):
         self.eye_aspect_ratio = self.calculate_ear(landmarks)
-        self.drowsiness_level = self.calculate_perclos()
+        self.awareness_level = self.calculate_perclos(self.eye_aspect_ratio)
 
-    def calculate_perclos(self):
-        if self.eye_aspect_ratio < 0.22:
+    def calculate_perclos(self, eye_aspect_ratio):
+        if eye_aspect_ratio < 0.22:
             self.window.append(0)
         else:
             self.window.append(1)

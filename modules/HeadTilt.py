@@ -26,14 +26,14 @@ class PERCLOS:
     
       if not ret: break
       
-      eye_aspect_ratio, drowsiness_level = self.detect_drowsiness(frame)
+      eye_aspect_ratio, awareness_level = self.detect_awareness(frame)
 
       if DEBUG:
-        # Display drowsiness level
+        # Display awareness level
         cv.putText(frame, f"EAR: {eye_aspect_ratio:.3f}", (10, 40), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
         
-        # Display drowsiness level
-        cv.putText(frame, f"Drowsiness Level: {drowsiness_level:.3f}", (10, 80), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
+        # Display awareness level
+        cv.putText(frame, f"Drowsiness Level: {awareness_level:.3f}", (10, 80), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
         
         # Draw left eye outline
         cv.polylines(frame, [np.array([landmarks[p] for p in LEFT_EYE ], 
@@ -46,7 +46,7 @@ class PERCLOS:
                      True, (0,255,0), 1, cv.LINE_AA) 
         if self.drowsy:
              
-          # Display drowsiness level
+          # Display awareness level
           cv.putText(frame, "DROWSY!!!", (100, 250), cv.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
       
         # Display frame
@@ -58,7 +58,7 @@ class PERCLOS:
       self.frame_counter += 1
       if cv.waitKey(1) & 0xFF == ord('q'):
         break
-  def detect_drowsiness(self, frame):
+  def detect_awareness(self, frame):
     
     rgb_frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
     
@@ -76,13 +76,13 @@ class PERCLOS:
       eye_aspect_ratio = self.calculate_ear(landmarks)
       
       # Calculate PERCLOS
-      drowsiness_level = self.calculate_perclos(landmarks)
+      awareness_level = self.calculate_perclos(landmarks)
       
       # Change state to drowsy
-      if drowsiness_level < .8: self.drowsy = True
+      if awareness_level < .8: self.drowsy = True
       else: self.drowsy = False
 
-    return eye_aspect_ratio, drowsiness_level
+    return eye_aspect_ratio, awareness_level
 
   def calculate_perclos(self, results):
     # Average EAR
@@ -130,6 +130,6 @@ if __name__ == "__main__":
   # Create PERCLOS object
   perclos = PERCLOS(video_capture)
 
-  # Detect drowsiness
-  perclos.detect_drowsiness()
+  # Detect awareness
+  perclos.detect_awareness()
 
