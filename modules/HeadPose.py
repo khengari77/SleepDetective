@@ -5,7 +5,7 @@ import numpy as np
 
 class HeadPose:
     def __init__(self, frame_width, frame_height, window_size):
-        self.window = deque(maxlen=window_size)
+        self.window = deque([1]*window_size, maxlen=window_size)
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.indices = [33, 263, 1, 61, 291, 199]
@@ -49,7 +49,7 @@ class HeadPose:
 
     def get_awareness_level(self, landmarks):
         x, y, z = self.get_angles(landmarks)
-        if x > 10 or x < -10:
+        if x > 7 or x < -7:
             self.window.append(0)
         else:
             self.window.append(1)

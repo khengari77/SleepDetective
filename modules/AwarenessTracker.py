@@ -3,9 +3,10 @@ from .PERCLOS import PERCLOS
 from .HeadPose import HeadPose
 import cv2
 
+THRESHOLD = 0.75
 
-class SleepTracker:
-    def __init__(self, frame, window_size=500):
+class AwarenessTracker:
+    def __init__(self, frame, window_size=200):
         self.face_mesh = mp.solutions.face_mesh.FaceMesh()
         self.frame_height, self.frame_width, *_ = frame.shape
         self.window_size = window_size
@@ -14,6 +15,7 @@ class SleepTracker:
         self.head_pose = HeadPose(self.frame_width, self.frame_height,
                                   self.window_size)
         self.awareness_level = 1
+        self.drowsy = False
 
     def take(self, frame):
         frame.flags.writeable = False
@@ -26,6 +28,10 @@ class SleepTracker:
             self.head_pose.take(landmarks)
             self.awareness_level = self.perclos.awareness_level * 0.5 +\
                     self.head_pose.awareness_level * 0.5
+            if self.awareness_level < THRESHOLD:
+                self.drowsy = True
+            else:
+                self.drowsy = False
 
     @ staticmethod
     def get_landmarks(mesh_result):

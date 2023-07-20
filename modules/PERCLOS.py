@@ -4,7 +4,7 @@ from collections import deque
 class PERCLOS:
 
     def __init__(self, frame_width, frame_height, window_size):
-        self.window = deque(maxlen=window_size)
+        self.window = deque([1]*window_size, maxlen=window_size)
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.eye_aspect_ratio = 0
@@ -15,7 +15,7 @@ class PERCLOS:
         self.awareness_level = self.calculate_perclos(self.eye_aspect_ratio)
 
     def calculate_perclos(self, eye_aspect_ratio):
-        if eye_aspect_ratio < 0.22:
+        if eye_aspect_ratio < 0.20:
             self.window.append(0)
         else:
             self.window.append(1)
