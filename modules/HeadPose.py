@@ -16,6 +16,7 @@ class HeadPose:
                     [0, 0, 1]])
         self.dist_matrix = np.zeros((4, 1), dtype=np.float64)
         self.awareness_level = 1
+        self.head_angle = 0
 
     def take(self, landmarks):
         self.awareness_level = self.get_awareness_level(landmarks)
@@ -49,12 +50,9 @@ class HeadPose:
 
     def get_awareness_level(self, landmarks):
         x, y, z = self.get_angles(landmarks)
+        self.head_angle = x
         if x > 7 or x < -7:
             self.window.append(0)
         else:
             self.window.append(1)
         return sum(self.window) / len(self.window)
-
-
-
-

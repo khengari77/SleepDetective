@@ -16,6 +16,7 @@ class AwarenessTracker:
                                   self.window_size)
         self.awareness_level = 1
         self.drowsy = False
+        self.data = self.get_data()
 
     def take(self, frame):
         frame.flags.writeable = False
@@ -32,6 +33,14 @@ class AwarenessTracker:
                 self.drowsy = True
             else:
                 self.drowsy = False
+        self.data = self.get_data()
+
+    def get_data(self):
+        return {'Eye Aspect Ratio': self.perclos.eye_aspect_ratio,
+                'PERCLOS': self.perclos.awareness_level,
+                'Head Angle': self.head_pose.head_angle,
+                'Head Pose': self.head_pose.awareness_level,
+                'Average Awareness Level': self.awareness_level}
 
     @ staticmethod
     def get_landmarks(mesh_result):

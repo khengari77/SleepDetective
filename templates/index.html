@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Stream</title>
+</head>
+<body>
+    <h1>Video Stream</h1>
+    <img src="{{ url_for('video_feed') }}" width="640" height="480" />
+    <p>Data: {{ data}}</p>
+    <a href="{{ url_for('shutdown') }}">SHUTDOWN</a>
+    </body>
+</html>
+
