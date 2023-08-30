@@ -1,5 +1,5 @@
 # SleepDetective 
-This is a project that aims to monitor vehicle drivers' vigilance and gives an alarm in case the driver loses his vigilance. Despiite the name SleepDetective, the project monitors awareness in general. 
+This is a project that aims to monitor vehicle drivers' vigilance and gives an alarm in case the driver loses his vigilance. Despite the name SleepDetective, the project monitors awareness in general. 
 # TODOs
 - [x] Design the structure of the project.
 - [x] Build the system parts.
