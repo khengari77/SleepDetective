@@ -14,6 +14,7 @@ from modules.ActionTaker import ActionTaker
 # Parse command-line arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--gpio", action=argparse.BooleanOptionalAction)
+parser.add_argument("--use-picamera", action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
 
 # Initialize Flask app
@@ -25,7 +26,7 @@ latest_data = None
 lock = threading.Lock()
 
 # Initialize and start the modules
-capture = VideoCapture(0).start()
+capture = VideoCapture(0, use_picamera=args.use_picamera).start()
 features = FacialFeatures(capture.frame, show_landmarks=True).start()
 sleep_tracker = AwarenessTracker(capture.frame)
 
