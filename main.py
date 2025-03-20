@@ -16,7 +16,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--gpio", action=argparse.BooleanOptionalAction)
 parser.add_argument("--use-picamera", action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
-print(args)
 
 # Initialize Flask app
 app = Flask(__name__)

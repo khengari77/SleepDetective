@@ -2,6 +2,7 @@ import mediapipe as mp
 from .PERCLOS import PERCLOS
 from .HeadPose import HeadPose
 import cv2
+import time
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -10,6 +11,8 @@ THRESHOLD = 0.75
 
 class AwarenessTracker:
     def __init__(self, frame, window_size=200):
+        while frame is None:
+            time.sleep(1)
         self.frame_height, self.frame_width, *_ = frame.shape
         self.window_size = window_size
         self.perclos = PERCLOS(self.frame_width, self.frame_height,
