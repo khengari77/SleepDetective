@@ -1,5 +1,4 @@
 from threading import Thread
-from picamera2 import Picamera2
 import cv2
 
 
@@ -11,6 +10,7 @@ class VideoCapture:
 
     def __init__(self, src=0, use_picamera=False):
         if use_picamera:
+            from picamera2 import Picamera2
             self.stream = Picamera2()
 
             camera_config = self.stream.create_preview_configuration()
@@ -24,6 +24,7 @@ class VideoCapture:
         else:
             (self.grabbed, self.frame) = self.stream.read()
         self.stopped = False
+        self.use_picamera = use_picamera
 
     def start(self):
         Thread(target=self.get, args=()).start()
@@ -34,7 +35,11 @@ class VideoCapture:
             if not self.grabbed:
                 self.stop()
             else:
-                (self.grabbed, self.frame) = self.stream.read()
+                if self.use_picamera:
+                    self.frame = self.stream.capture_array()
+                    self.grabbed = True
+                else:
+                    (self.grabbed, self.frame) = self.stream.read()
 
     def stop(self):
         self.stopped = True
