@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--use-gpio", action=argparse.BooleanOptionalAction)
 parser.add_argument("--use-gsm", action=argparse.BooleanOptionalAction)
 parser.add_argument("--use-picamera", action=argparse.BooleanOptionalAction)
+parser.add_argument("--draw-landmarks", action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
 
 # Initialize Flask app
@@ -30,7 +31,7 @@ lock = threading.Lock()
 capture = VideoCapture(0, use_picamera=args.use_picamera).start()
 while capture.frame is None:
     pass
-features = FacialFeatures(capture.frame, show_landmarks=True).start()
+features = FacialFeatures(capture.frame, show_landmarks=args.draw_landmarks).start()
 sleep_tracker = AwarenessTracker(capture.frame)
 
 # Initialize and start ActionTaker if GPIO is enabled
@@ -47,7 +48,7 @@ def processing_loop():
             features.take(frame)  # Process facial features
             sleep_tracker.take(features.mesh_result)  # Update awareness data
             with lock:  # Safely update global variables
-                latest_frame = capture.frame.copy() if capture.frame is not None else None
+                latest_frame = features.frame.copy() if features.frame is not None else None
                 latest_data = sleep_tracker.get_data()
         if capture.stopped:  # Exit condition
             break
