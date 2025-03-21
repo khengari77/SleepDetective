@@ -47,6 +47,7 @@ def processing_loop():
         if frame is not None:
             features.take(frame)  # Process facial features
             sleep_tracker.take(features.mesh_result)  # Update awareness data
+            action_taker.take(sleep_tracker.drowsy)
             with lock:  # Safely update global variables
                 latest_frame = features.frame.copy() if features.frame is not None else None
                 latest_data = sleep_tracker.get_data()
