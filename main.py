@@ -2,7 +2,7 @@ import os
 from threading import Thread
 import cv2
 import argparse
-import json
+import time
 import threading
 from flask import Flask, render_template, Response, jsonify
 
@@ -27,8 +27,7 @@ lock = threading.Lock()
 
 # Initialize and start the modules
 capture = VideoCapture(0, use_picamera=args.use_picamera).start()
-while capture.frame is None:  # Wait for the first frame to be captured
-    pass
+time.sleep(10)
 features = FacialFeatures(capture.frame, show_landmarks=True).start()
 sleep_tracker = AwarenessTracker(capture.frame)
 
