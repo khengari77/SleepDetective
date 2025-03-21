@@ -27,7 +27,8 @@ lock = threading.Lock()
 
 # Initialize and start the modules
 capture = VideoCapture(0, use_picamera=args.use_picamera).start()
-time.sleep(10)
+while capture.frame is None:
+    pass
 features = FacialFeatures(capture.frame, show_landmarks=True).start()
 sleep_tracker = AwarenessTracker(capture.frame)
 
