@@ -20,7 +20,7 @@ class VideoCapture:
             self.stream = cv2.VideoCapture(src)
         if use_picamera:
             self.frame = self.stream.capture_array()
-            self.grabbed = True
+            self.grabbed = not (self.frame is None)
         else:
             (self.grabbed, self.frame) = self.stream.read()
         self.stopped = False
@@ -37,7 +37,7 @@ class VideoCapture:
             else:
                 if self.use_picamera:
                     self.frame = self.stream.capture_array()
-                    self.grabbed = True
+                    self.grabbed = not (self.frame is None)
                 else:
                     (self.grabbed, self.frame) = self.stream.read()
 
