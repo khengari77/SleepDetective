@@ -47,6 +47,7 @@ def processing_loop():
             features.take(frame)  # Process facial features
             sleep_tracker.take(features.mesh_result)  # Update awareness data
             with lock:  # Safely update global variables
+                latest_frame = capture.frame.copy() if capture.frame is not None else None
                 latest_data = sleep_tracker.get_data()
         if capture.stopped:  # Exit condition
             break
