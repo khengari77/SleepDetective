@@ -12,9 +12,8 @@ class VideoCapture:
         if use_picamera:
             from picamera2 import Picamera2
             self.stream = Picamera2()
-
-            camera_config = self.stream.create_preview_configuration()
-            self.stream.configure(camera_config)
+            config = self.stream.create_video_configuration(main={"size": (640, 480)}, lores={"size": (320, 240)}, display="lores")
+            self.stream.configure(config)
             self.stream.start()
         else:
             self.stream = cv2.VideoCapture(src)
