@@ -13,7 +13,8 @@ from modules.ActionTaker import ActionTaker
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--gpio", action=argparse.BooleanOptionalAction)
+parser.add_argument("--use-gpio", action=argparse.BooleanOptionalAction)
+parser.add_argument("--use-gsm", action=argparse.BooleanOptionalAction)
 parser.add_argument("--use-picamera", action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
 
@@ -33,10 +34,9 @@ features = FacialFeatures(capture.frame, show_landmarks=True).start()
 sleep_tracker = AwarenessTracker(capture.frame)
 
 # Initialize and start ActionTaker if GPIO is enabled
-action_taker = ActionTaker()
-print("GPIO enabled" if args.gpio else "GPIO disabled")
-if args.gpio:
-    action_taker.start()
+print("GPIO enabled" if args.use_gpio else "GPIO disabled")
+print("GSM enabled" if args.use_gsm else "GSM disabled")
+action_taker = ActionTaker(use_gpio=args.use_gpio, use_gsm=args.use_gsm).start()
 
 # Processing loop to handle video and data updates
 def processing_loop():
