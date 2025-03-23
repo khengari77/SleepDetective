@@ -12,7 +12,7 @@ class VideoCapture:
         if use_picamera:
             from picamera2 import Picamera2
             self.stream = Picamera2()
-            config = self.stream.create_video_configuration(main={"size": (640, 480)})
+            config = self.stream.create_video_configuration(main={"size": (640, 480), "format": "BGR888"})
             self.stream.configure(config)
             self.stream.start()
         else:

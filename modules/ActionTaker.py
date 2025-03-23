@@ -15,8 +15,9 @@ class ActionTaker:
         self.use_gsm = use_gsm
 
     def take(self, awareness_level):
-        self.pin1_state = awareness_level < 0.8
-        self.pin2_state = awareness_level < 0.7
+        self.pin1_state = awareness_level > 0.8
+        self.pin2_state = awareness_level > 0.7
+        self.send_sms = awareness_level < 0.6
 
     def start(self):
         if self.use_gpio:
@@ -30,6 +31,10 @@ class ActionTaker:
     def action(self):
         while not self.stopped:
             self.pin1.write(self.pin1_state)
+            self.pin2.write(self.pin2_state)
+            if self.send_sms and not self.message_sent:
+                self.gsm.send_SMS(self.gsm.number, self.gsm.message)
+                self.message_sent = True
     def stop(self):
         self.pin.write(False)
         self.stopped = True

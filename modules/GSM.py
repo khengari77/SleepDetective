@@ -5,7 +5,7 @@ import serial
 class GSM:
     def __init__(self, port="/dev/ttyS0", baud_rate=115200):
         self.serial = serial.Serial(port, baud_rate, timeout=1)
-        self.number = "+218910061635"
+        self.number = "+218922653284"
         self.message = "Help"
         self.sent = False
 
