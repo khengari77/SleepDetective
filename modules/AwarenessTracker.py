@@ -17,10 +17,34 @@ class AwarenessTracker:
                                self.window_size)
         self.head_pose = HeadPose(self.frame_width, self.frame_height,
                                   self.window_size)
-        self.awareness_level = 1
+        self._awareness_level = 1
         self.drowsy = False
-        self.data = self.get_data()
 
+    @property
+    def awareness_level(self):
+        return self._awareness_level
+
+    @property
+    def data(self):
+        return {'eye aspect ratio': self.perclos.eye_aspect_ratio,
+                'average eye aspect ratio': self.perclos.average_eye_aspect_ratio,
+                'std eye aspect ratio': self.perclos.std_eye_aspect_ratio,
+                'perclos': self.perclos.awareness_level,
+                'head angle': self.head_pose.head_angle,
+                'average head angle': self.head_pose.average_angle,
+                'std head angle': self.head_pose.std_angle,
+                'head pose': self.head_pose.awareness_level,
+                'average awareness level': self.awareness_level,
+                }
+
+    @property
+    def calibration_mode(self):
+        return self.perclos.calibration_mode and self.head_pose.calibration_mode
+
+    @calibration_mode.setter
+    def calibration_mode(self, value : bool):
+        self.perclos.calibration_mode = value
+        self.head_pose.calibration_mode = value
 
     def take(self, mesh_result):
         if mesh_result is None:
@@ -29,20 +53,15 @@ class AwarenessTracker:
             landmarks = self.get_landmarks(mesh_result)
             self.perclos.take(landmarks)
             self.head_pose.take(landmarks)
-            self.awareness_level = self.perclos.awareness_level * 0.5 +\
+            if self.perclos.calibration_mode or self.head_pose.calibration_mode:
+                return
+            self._awareness_level = self.perclos.awareness_level * 0.5 +\
                     self.head_pose.awareness_level * 0.5
             if self.awareness_level < THRESHOLD:
                 self.drowsy = True
             else:
                 self.drowsy = False
-        self.data = self.get_data()
 
-    def get_data(self):
-        return {'Eye Aspect Ratio': self.perclos.eye_aspect_ratio,
-                'PERCLOS': self.perclos.awareness_level,
-                'Head Angle': self.head_pose.head_angle,
-                'Head Pose': self.head_pose.awareness_level,
-                'Average Awareness Level': self.awareness_level}
 
     @ staticmethod
     def get_landmarks(mesh_result):

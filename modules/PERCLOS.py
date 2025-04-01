@@ -1,26 +1,35 @@
 from collections import deque
-
+import numpy as np
 
 class PERCLOS:
 
     def __init__(self, frame_width, frame_height, window_size):
         self.window = deque([1]*window_size, maxlen=window_size)
+        self.ear_window = deque([0]*window_size, maxlen=window_size)
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.eye_aspect_ratio = 0
         self.awareness_level = 1
+        self.calibration_mode = False
+        self.average_eye_aspect_ratio = 0
+        self.std_eye_aspect_ratio = 0
+
 
     def take(self, landmarks):
         self.eye_aspect_ratio = self.calculate_ear(landmarks)
+        if self.calibration_mode:
+            self.ear_window.append(self.eye_aspect_ratio)
+            self.average_eye_aspect_ratio = np.mean(self.ear_window)
+            self.std_eye_aspect_ratio = np.std(self.ear_window)
         self.awareness_level = self.calculate_perclos(self.eye_aspect_ratio)
 
     def calculate_perclos(self, eye_aspect_ratio):
-        if eye_aspect_ratio < 0.20:
+        if eye_aspect_ratio < (self.average_eye_aspect_ratio - self.std_eye_aspect_ratio):
             self.window.append(0)
         else:
             self.window.append(1)
 
-        return sum(self.window) / len(self.window)
+        return np.mean(self.window)
 
     def calculate_ear(self, coords):
         # Calculate EAR

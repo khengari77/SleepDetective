@@ -45,16 +45,28 @@ action_taker = ActionTaker(use_gpio=args.use_gpio, use_gsm=args.use_gsm).start()
 def processing_loop():
     global latest_frame, latest_data
     # calibration loop.
-    
+    sleep_tracker.calibration_mode = True
+    for i in range(10*args.fps):
+        frame = capture.frame  # Get the latest frame from the camera
+        if frame is not None:
+            features.take(frame)  # Process facial features
+            sleep_tracker.take(features.mesh_result)  # Update awareness data
+            with lock:  # Safely update global variables
+                latest_frame = features.frame.copy() if features.frame is not None else None
+                latest_data = sleep_tracker.data
+                latest_data["calibration_frame"] = i
+        if capture.stopped:  # Exit condition
+            break
+    sleep_tracker.calibration_mode = False 
     while True:
         frame = capture.frame  # Get the latest frame from the camera
         if frame is not None:
             features.take(frame)  # Process facial features
             sleep_tracker.take(features.mesh_result)  # Update awareness data
-            action_taker.take(sleep_tracker.drowsy)
+            action_taker.take(sleep_tracker.awareness_level)
             with lock:  # Safely update global variables
                 latest_frame = features.frame.copy() if features.frame is not None else None
-                latest_data = sleep_tracker.get_data()
+                latest_data = sleep_tracker.data
         if capture.stopped:  # Exit condition
             break
 

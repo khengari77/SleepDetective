@@ -6,6 +6,7 @@ import numpy as np
 class HeadPose:
     def __init__(self, frame_width, frame_height, window_size):
         self.window = deque([1]*window_size, maxlen=window_size)
+        self.angle_window = deque([0]*window_size, maxlen=window_size)
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.indices = [33, 263, 1, 61, 291, 199]
@@ -15,11 +16,20 @@ class HeadPose:
                     [0, self.focal_length, self.frame_width / 2],
                     [0, 0, 1]])
         self.dist_matrix = np.zeros((4, 1), dtype=np.float64)
-        self.awareness_level = 1
+        self.awareness_level = 1 
         self.head_angle = 0
+        self.average_angle = 0
+        self.std_angle = 0
+        self.calibration_mode = False
 
     def take(self, landmarks):
-        self.awareness_level = self.get_awareness_level(landmarks)
+        x, y, z = self.get_angles(landmarks)
+        self.head_angle = x
+        if self.calibration_mode:
+            self.angle_window.append(x)
+            self.average_angle = np.mean(self.angle_window)
+            self.std_angle = np.std(self.angle_window)
+        self.awareness_level = self.get_awareness_level(x)
 
 # Returns 2D & 3D meshes of the face.
     def get_faces(self, landmarks):
@@ -48,11 +58,9 @@ class HeadPose:
 
         return [angle * 360 for angle in angles]
 
-    def get_awareness_level(self, landmarks):
-        x, y, z = self.get_angles(landmarks)
-        self.head_angle = x
-        if x > 7 or x < -7:
+    def get_awareness_level(self, x):
+        if abs(x - self.average_angle) > 10:
             self.window.append(0)
         else:
             self.window.append(1)
-        return sum(self.window) / len(self.window)
+        return np.mean(self.window)

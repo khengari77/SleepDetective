@@ -30,11 +30,13 @@ class ActionTaker:
 
     def action(self):
         while not self.stopped:
-            self.pin1.write(self.pin1_state)
-            self.pin2.write(self.pin2_state)
-            if self.send_sms and not self.message_sent:
+            if self.use_gpio:
+                self.pin1.write(self.pin1_state)
+                self.pin2.write(self.pin2_state)
+            if self.use_gsm and self.send_sms and not self.message_sent:
                 self.gsm.send_SMS(self.gsm.number, self.gsm.message)
                 self.message_sent = True
+
     def stop(self):
         self.pin.write(False)
         self.stopped = True
