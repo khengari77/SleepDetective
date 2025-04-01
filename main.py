@@ -17,7 +17,9 @@ parser.add_argument("--use-gpio", action=argparse.BooleanOptionalAction)
 parser.add_argument("--use-gsm", action=argparse.BooleanOptionalAction)
 parser.add_argument("--use-picamera", action=argparse.BooleanOptionalAction)
 parser.add_argument("--draw-landmarks", action=argparse.BooleanOptionalAction)
+parser.add_argument("--fps", type=int, default=30, help="Video capture FPS")
 args = parser.parse_args()
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -28,7 +30,7 @@ latest_data = None
 lock = threading.Lock()
 
 # Initialize and start the modules
-capture = VideoCapture(0, use_picamera=args.use_picamera).start()
+capture = VideoCapture(0, use_picamera=args.use_picamera, fps=args.fps).start()
 while capture.frame is None:
     pass
 features = FacialFeatures(capture.frame, show_landmarks=args.draw_landmarks).start()
@@ -42,6 +44,8 @@ action_taker = ActionTaker(use_gpio=args.use_gpio, use_gsm=args.use_gsm).start()
 # Processing loop to handle video and data updates
 def processing_loop():
     global latest_frame, latest_data
+    # calibration loop.
+    
     while True:
         frame = capture.frame  # Get the latest frame from the camera
         if frame is not None:

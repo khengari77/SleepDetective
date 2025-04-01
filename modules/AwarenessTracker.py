@@ -21,6 +21,7 @@ class AwarenessTracker:
         self.drowsy = False
         self.data = self.get_data()
 
+
     def take(self, mesh_result):
         if mesh_result is None:
             return
