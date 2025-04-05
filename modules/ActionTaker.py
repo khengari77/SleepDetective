@@ -12,6 +12,7 @@ class ActionTaker:
         self.message_sent = False
         self.use_gpio = use_gpio
         self.use_gsm = use_gsm
+        self.send_sms = False
 
     def take(self, awareness_level):
         self.pin1_state = awareness_level > 0.8
