@@ -16,7 +16,7 @@ class GSM:
     def send_SMS(self, number, message, timeout=2):
         self.send_command('AT+CMGF=1')
         time.sleep(timeout)
-        self.send_command(f'AT+CMGS="{number}"', response_wait_time=2)
+        self.send_command(f'AT+CMGS="{number}"', timeout=2)
         self.serial.write(message.encode('utf-8'))
         self.serial.write(b'\x1A')  # Ctrl+Z to end SMS
         time.sleep(timeout)
