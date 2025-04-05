@@ -15,6 +15,8 @@ from modules.ActionTaker import ActionTaker
 parser = argparse.ArgumentParser()
 parser.add_argument("--use-gpio", action=argparse.BooleanOptionalAction)
 parser.add_argument("--use-gsm", action=argparse.BooleanOptionalAction)
+parser.add_argument("--number", type=str, default="+218922653284")
+parser.add_argument("--gsm-port", type=str, default="/dev/ttyS2")
 parser.add_argument("--use-picamera", action=argparse.BooleanOptionalAction)
 parser.add_argument("--draw-landmarks", action=argparse.BooleanOptionalAction)
 parser.add_argument("--fps", type=int, default=30, help="Video capture FPS")

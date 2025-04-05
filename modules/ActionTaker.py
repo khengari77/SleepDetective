@@ -5,12 +5,11 @@ from .GSM import GSM
 
 class ActionTaker:
 
-    def __init__(self, use_gpio=True, use_gsm=True, gps_port="/dev/ttyS4"):
+    def __init__(self, use_gpio=True, use_gsm=True):
         self.stopped = False
         self.pin1_state = False
         self.pin2_state = False
         self.message_sent = False
-        self.gps_port = gps_port 
         self.use_gpio = use_gpio
         self.use_gsm = use_gsm
 
@@ -19,12 +18,12 @@ class ActionTaker:
         self.pin2_state = awareness_level > 0.7
         self.send_sms = awareness_level < 0.6
 
-    def start(self):
+    def start(self, gsm_port, number):
         if self.use_gpio:
             self.pin1 = GPIO("/dev/gpiochip0", 17, "out")
             self.pin2 = GPIO("/dev/gpiochip0", 16, "out")
         if self.use_gsm:
-            self.gsm  = GSM(port=self.gps_port)
+            self.gsm  = GSM(port=gsm_port, number=number)
         Thread(target=self.action, args=()).start()
         return self
 
