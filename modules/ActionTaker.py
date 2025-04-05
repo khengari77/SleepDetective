@@ -35,6 +35,7 @@ class ActionTaker:
                 self.pin2.write(self.pin2_state)
             if self.use_gsm and self.send_sms and not self.message_sent:
                 self.gsm.send_SMS(self.gsm.number, self.gsm.message)
+                print(f"SMS sent to {self.gsm.number}")
                 self.message_sent = True
 
     def stop(self):
