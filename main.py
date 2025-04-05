@@ -41,7 +41,8 @@ sleep_tracker = AwarenessTracker(capture.frame)
 # Initialize and start ActionTaker if GPIO is enabled
 print("GPIO enabled" if args.use_gpio else "GPIO disabled")
 print("GSM enabled" if args.use_gsm else "GSM disabled")
-action_taker = ActionTaker(use_gpio=args.use_gpio, use_gsm=args.use_gsm).start()
+action_taker = ActionTaker(use_gpio=args.use_gpio, use_gsm=args.use_gsm)
+action_taker.start(args.gsm_port, args.number)
 
 # Processing loop to handle video and data updates
 def processing_loop():
