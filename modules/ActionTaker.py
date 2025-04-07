@@ -19,6 +19,8 @@ class ActionTaker:
         self.pin2_state = awareness_level > 0.7
         self.send_sms = awareness_level < 0.6
 
+        print({'pin1': self.pin1_state, 'pin2': self.pin2_state, 'send_sms': self.send_sms})
+
     def start(self, gsm_port, number):
         if self.use_gpio:
             self.pin1 = GPIO("/dev/gpiochip0", 17, "out")
