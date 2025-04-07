@@ -15,8 +15,8 @@ class ActionTaker:
         self.send_sms = False
 
     def take(self, awareness_level):
-        self.pin1_state = awareness_level > 0.8
-        self.pin2_state = awareness_level > 0.7
+        self.pin1_state = awareness_level < 0.8
+        self.pin2_state = awareness_level < 0.7
         self.send_sms = awareness_level < 0.6
 
 
@@ -38,7 +38,7 @@ class ActionTaker:
                 self.gsm.send_SMS(self.gsm.number, self.gsm.message)
                 print(f"SMS sent to {self.gsm.number}")
                 self.message_sent = True
-        time.sleep(1)
+        time.sleep(2)
 
     def stop(self):
         self.pin.write(False)
