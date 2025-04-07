@@ -19,7 +19,6 @@ class ActionTaker:
         self.pin2_state = awareness_level > 0.7
         self.send_sms = awareness_level < 0.6
 
-        print({'pin1': self.pin1_state, 'pin2': self.pin2_state, 'send_sms': self.send_sms})
 
     def start(self, gsm_port, number):
         if self.use_gpio:
@@ -39,6 +38,7 @@ class ActionTaker:
                 self.gsm.send_SMS(self.gsm.number, self.gsm.message)
                 print(f"SMS sent to {self.gsm.number}")
                 self.message_sent = True
+        time.sleep(1)
 
     def stop(self):
         self.pin.write(False)
