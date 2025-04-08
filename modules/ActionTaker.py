@@ -15,6 +15,7 @@ class ActionTaker:
         self.send_sms = False
 
     def take(self, awareness_level):
+        awareness_level = float(awareness_level)
         self.pin1_state = awareness_level < 0.8
         self.pin2_state = awareness_level < 0.7
         self.send_sms = awareness_level < 0.6
