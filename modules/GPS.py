@@ -4,7 +4,7 @@ from threading import Thread
 
 
 class GPS:
-    def __init__(self, port='/dev/ttyS0', baudrate=9600):
+    def __init__(self, port='/dev/ttyAMA0', baudrate=9600):
         self.port = port
         self.serial
         self.baudrate = baudrate

@@ -2,6 +2,7 @@ from periphery import GPIO
 import time
 from threading import Thread
 from .GSM import GSM
+from .GPS import GPS
 
 class ActionTaker:
 
@@ -27,19 +28,21 @@ class ActionTaker:
             self.pin2 = GPIO("/dev/gpiochip0", 16, "out")
         if self.use_gsm:
             self.gsm  = GSM(port=gsm_port, number=number)
+        self.gps = GPS().start() 
         Thread(target=self.action, args=()).start()
         return self
 
     def action(self):
         while not self.stopped:
+            self.gps.get()
             if self.use_gpio:
                 self.pin1.write(self.pin1_state)
                 self.pin2.write(self.pin2_state)
             if self.use_gsm and self.send_sms and not self.message_sent:
-                self.gsm.send_SMS(self.gsm.number, self.gsm.message)
+                self.gsm.send_SMS(self.gsm.number, f"Help I fell asleep at {self.gps.get_location()}")
                 print(f"SMS sent to {self.gsm.number}")
                 self.message_sent = True
-        time.sleep(2)
+            time.sleep(2)
 
     def stop(self):
         self.pin.write(False)
