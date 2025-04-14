@@ -39,7 +39,7 @@ class ActionTaker:
                 self.pin1.write(self.pin1_state)
                 self.pin2.write(self.pin2_state)
             if self.use_gsm and self.send_sms and not self.message_sent:
-                self.gsm.send_SMS(self.gsm.number, f"Help I fell asleep at {self.gps.get_location()}")
+                self.gsm.send_SMS(self.gsm.number, f"Help I fell asleep at {self.gps.time} in location: {self.gps.location}")
                 print(f"SMS sent to {self.gsm.number}")
                 self.message_sent = True
             time.sleep(2)

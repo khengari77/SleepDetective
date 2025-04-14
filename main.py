@@ -70,7 +70,8 @@ def processing_loop():
             with lock:  # Safely update global variables
                 latest_frame = features.frame.copy() if features.frame is not None else None
                 latest_data = sleep_tracker.data
-                latest_data['location'] = action_taker.gps.get_location()
+                latest_data['location'] = action_taker.gps.location
+                latest_data['time'] = action_taker.gps.time
         if capture.stopped:  # Exit condition
             break
 
