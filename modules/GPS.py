@@ -3,7 +3,7 @@ from threading import Thread
 from serial import Serial
 
 class GPS:
-    def __init__(self, port='/dev/ttyAMA0', baudrate=9600):
+    def __init__(self, port='/dev/ttyAMA0', baud_rate=9600):
         self.port = port
         self.serial = Serial(port, baud_rate, timeout=1)
         self.baudrate = baudrate
