@@ -34,7 +34,6 @@ class ActionTaker:
 
     def action(self):
         while not self.stopped:
-            self.gps.get()
             if self.use_gpio:
                 self.pin1.write(self.pin1_state)
                 self.pin2.write(self.pin2_state)
