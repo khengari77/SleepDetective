@@ -1156,6 +1156,17 @@ files = [
 windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
+name = "pynmea2"
+version = "1.19.0"
+description = "Python library for the NMEA 0183 protcol"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pynmea2-1.19.0-py3-none-any.whl", hash = "sha256:5138558b4fb5daa587b2c17de99eb43df0297039de1c98010c996624abfb00eb"},
+    {file = "pynmea2-1.19.0.tar.gz", hash = "sha256:1daa79b93279f887d1c235e5cc5c79e32644564138ce46989ab0f4a2fc970d7c"},
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.2.1"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -1650,4 +1661,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9b962f310e683ee8361bb9b728746bc93c93512544ce9383779d136c048bd6fc"
+content-hash = "d132b4c0a38b7844368cee4d0381c449acdcd90b3e922946125ef405d08d91b8"
