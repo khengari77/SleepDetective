@@ -18,7 +18,6 @@ class GPS:
         return self
 
     def get(self):
-        self.serial = serial.Serial(self.port, self.baudrate, timeout=1)
         while not self.stopped:
             time.sleep(0.1)
             try:
