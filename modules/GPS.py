@@ -1,6 +1,6 @@
 import time
 from threading import Thread
-from serial import Serial
+from serial import Serial, SerialException
 
 class GPS:
     def __init__(self, port='/dev/ttyAMA0', baudrate=9600):
@@ -26,7 +26,7 @@ class GPS:
                     data = line.split(',')
                     if len(data) >= 10 and data[2] == 'A':  # Check if the GPS data is valid
                         self.parse_gps_data(data)
-            except serial.SerialException:
+            except SerialException:
                 print("Serial connection lost. Exiting GPS thread.")
                 break
 
