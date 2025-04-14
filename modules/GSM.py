@@ -2,8 +2,8 @@ import time
 from serial import Serial
 
 class GSM:
-    def __init__(self, port="/dev/ttyUSB2", number="+218922653284", baud_rate=115200):
-        self.serial = Serial(port, baud_rate, timeout=1)
+    def __init__(self, port="/dev/ttyUSB2", number="+218922653284", baudrate=115200):
+        self.serial = Serial(port, baudrate, timeout=1)
         self.number = number
         self.message = "Help"
         self.sent = False
