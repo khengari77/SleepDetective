@@ -1,12 +1,11 @@
-import serial
 import time
 from threading import Thread
-
+from serial import Serial
 
 class GPS:
     def __init__(self, port='/dev/ttyAMA0', baudrate=9600):
         self.port = port
-        self.serial
+        self.serial = Serial(port, baud_rate, timeout=1)
         self.baudrate = baudrate
         self.longitude = None
         self.latitude = None
