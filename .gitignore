@@ -10,3 +10,8 @@ share
 *.mp4
 
 .venv/
+data/tmp/
+data/features/*
+!data/features/.gitkeep
+*.task
+.pytest_cache/

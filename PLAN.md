@@ -37,6 +37,8 @@ video frame → MediaPipe Face Landmarker → per-frame feature vector
 
 **C6. Packaging: uv only.** Migrate the project from its current mixed state (stale `requirements.txt` + Poetry `pyproject.toml`/`poetry.lock`) to `uv` as the single tool for environments and dependencies. Concretely: rewrite `pyproject.toml` with a standard PEP 621 `[project]` table (dropping the `[tool.poetry]` sections and poetry-core build backend), regenerate the lock as `uv.lock` via `uv lock`, then delete `requirements.txt` and `poetry.lock`. The Poetry dependency list is the source of truth for existing deps (it is newer and includes `picamera2`, `typer`, `pynmea2` that requirements.txt lacks). All new v2 dependencies are added with `uv add`; all scripts/docs invoke tooling through `uv run`. No `pip install` instructions anywhere in the repo.
 
+**C7. Exact MediaPipe models, matched speed.** The deployed landmark stage must use the EXACT model weights Google ships in the pinned MediaPipe Face Landmarker `.task` bundle — never retrained, distilled, or third-party-substituted models. When exporting to ONNX, unpack the pinned `.task` (it is a zip of three TFLite nets: BlazeFace detector, FaceMesh v2 landmarker, blendshape net) and convert those files directly with `tf2onnx --tflite`; do not download pre-converted weights from model zoos. Two parity gates, both mandatory: (a) **numerical** — ONNX landmarks/blendshapes match MediaPipe Python output within 1e-4 on a fixed set of sample frames; (b) **performance** — end-to-end per-frame latency and face-reacquisition responsiveness within 20% of the `mediapipe` Python baseline on the same target hardware, measured by a committed benchmark script. Speed parity requires replicating MediaPipe's pipeline strategy, not just its nets: run the face detector only on acquisition/loss; on tracked frames derive the crop ROI from the previous frame's landmarks with confidence gating. If the ONNX path cannot hit gate (b) on target hardware, ship the mediapipe tasks runtime for the landmark stage and ONNX for the temporal head — speed wins over single-runtime purity.
+
 ---
 
 ## 2. Repository layout
@@ -172,8 +174,14 @@ Keep training CPU-feasible: with ~thousands of windows and <100k params this tra
 
 ## 8. Phase 6 — Export and integration
 
-- Export the winning model to ONNX; verify onnxruntime output matches torch to 1e-5.
-- Write `DrowsinessEstimator` — an inference class mirroring the training-time pipeline exactly: ring buffer of per-frame features (600 × n_features), the same baseline-normalization code path fed by a calibration routine, masked inference, EMA smoothing of the output score. Unit-test that a features-parquet replayed through `DrowsinessEstimator` reproduces the offline evaluation scores for that video.
+**Goal: one deployable ONNX artifact** (per C7): the exact MediaPipe nets + feature computation + baseline normalization + temporal head fused into a single stateful graph, with `onnxruntime` as the only inference dependency. The BlazeFace detector stays a separate small graph (it runs at a different cadence with dynamic crops); everything downstream of the face crop is one fused graph. **Deployment contract:** from the caller's side this is end-to-end — `DrowsinessEstimator.take(frame) -> drowsiness_score`, one call per camera frame, all state (ROI tracking, feature ring buffer, EMA, calibration stats) carried internally. No caller-visible landmarks, features, or intermediate stages.
+
+- **Landmarker conversion (C7):** unzip the pinned `.task`, convert its TFLite nets with `tf2onnx --tflite`, and commit a parity test: landmarks/blendshapes vs. MediaPipe Python within 1e-4 on fixed sample frames. This gate must pass before any fusion work.
+- **Tracking loop (C7 speed):** reimplement MediaPipe's ROI strategy in the inference wrapper — detector only on startup/face-loss, crop from previous frame's landmarks otherwise, confidence-gated. Commit a benchmark script; latency and reacquisition must be within 20% of the `mediapipe` baseline on target hardware.
+- Export the winning temporal model to ONNX; verify onnxruntime output matches torch to 1e-5.
+- **Fusion:** compose landmarker → feature columns → normalization → temporal head with `onnx.compose`, exposing the 600-frame feature ring buffer and EMA state as explicit graph inputs/outputs (stateful single-frame inference). Verify the fused graph reproduces the stage-by-stage outputs to 1e-5.
+- **Tier 2 — true single-graph e2e (attempt, keep only if C7 gates pass):** fold the BlazeFace detector and the run-detector-or-track decision INTO the fused graph using ONNX control flow (`If` op with detector/tracking subgraphs; `NonMaxSuppression` for detector post-processing; `GridSample` for the rotated face crop). Result: one `.onnx` file, `score, state = run(frame, state)`. Nothing here is impossible — the risk is performance: `If` subgraphs are optimization barriers for some execution providers, so the monolith may run slower than the two-graph split on the Pi. Benchmark both; ship the single graph iff it still passes C7(b), otherwise ship Tier 1 and keep the Tier-2 graph in the repo as an artifact.
+- Write `DrowsinessEstimator` — an inference class mirroring the training-time pipeline exactly: drives the two ONNX graphs, ring buffer of per-frame features (600 × n_features), the same baseline-normalization code path fed by a calibration routine, masked inference, EMA smoothing of the output score. Unit-test that a features-parquet replayed through `DrowsinessEstimator` reproduces the offline evaluation scores for that video.
 - Integration into SleepDetective: replace the body of `AwarenessTracker.take()` — FaceMesh result → feature row → estimator → `awareness_level`/`drowsy`. Keep v1's heuristic behind a config flag as fallback for the first N seconds before calibration completes.
 
 ---
@@ -200,7 +208,7 @@ Keep training CPU-feasible: with ~thousands of windows and <100k params this tra
 | 4 | Windowing + normalization | unit tests pass; window counts logged per video; calibration segments excluded |
 | 5 | Baselines B1–B3 | per-fold numbers in a report; B1 reproduces heuristic behavior on sanity clips |
 | 6 | M1 + ablations | full results matrix; best config identified |
-| 7 | Export + integration | ONNX parity test passes; replay test passes; SleepDetective runs with the new estimator |
+| 7 | Export + integration | landmarker ONNX parity ≤ 1e-4 vs MediaPipe (C7a); latency/reacquisition within 20% of mediapipe baseline on target hardware (C7b); fused-graph and replay tests pass; SleepDetective runs with the new estimator on onnxruntime only |
 
 Work strictly in milestone order. Commit at every milestone with the report artifacts. Ask the user before: (a) starting the full 180-video download, (b) any decision that would violate C1–C4, (c) declaring a final model when M1 does not beat B2.
 
