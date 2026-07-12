@@ -21,6 +21,7 @@ dependencies = [
     "pyyaml>=6.0.3",
     "kaggle>=1.7.4.5",
     "gdown>=6.1.0",
+    "scikit-learn>=1.7.2",
 ]
 
 # python-prctl (pulled in by picamera2) is sdist-only and needs libcap headers
