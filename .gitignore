@@ -9,3 +9,4 @@ share
 *.MOV
 *.mp4
 
+.venv/
