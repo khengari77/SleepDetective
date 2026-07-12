@@ -8,9 +8,11 @@ import pandas as pd
 import pytest
 
 from src.manifest import (
+    build_archive_manifest,
     build_manifest,
     load_config,
     parse_video_path,
+    validate_archive_manifest,
     validate_manifest,
     _parse_size,
 )
@@ -28,7 +30,7 @@ def synthetic_listing(missing: set[str] = frozenset()):
             for label in (0, 5, 10):
                 path = f"Fold{fold}_part{part}/{subject:02d}/{label}.MOV"
                 if f"s{subject:02d}_c{label:02d}" not in missing:
-                    files.append((path, 500_000_000))
+                    files.append((path, 500_000_000, f"driveid_{subject:02d}_{label}"))
     return files
 
 
@@ -63,7 +65,7 @@ class TestBuildManifest:
 
     def test_skips_non_video_files(self):
         manifest, skipped = build_manifest(
-            synthetic_listing() + [("labels.txt", 100), ("Fold1_part1/junk/readme.md", 1)]
+            synthetic_listing() + [("labels.txt", 100, "x"), ("Fold1_part1/junk/readme.md", 1, "y")]
         )
         assert len(manifest) == 180
         assert len(skipped) == 2
@@ -95,6 +97,24 @@ class TestValidateManifest:
         ok, report = validate_manifest(manifest, CFG)
         assert not ok
         assert "duplicate" in report
+
+
+class TestArchiveManifest:
+    ZIPS = [(f"Fold{f}_part{p}.zip", None, f"driveid_f{f}p{p}")
+            for f in range(1, 6) for p in (1, 2)]
+
+    def test_complete_archives_pass(self):
+        archives, skipped = build_archive_manifest(self.ZIPS + [("readme.txt", 1, "x")])
+        assert len(archives) == 10
+        assert skipped == ["not a fold archive: readme.txt"]
+        ok, report = validate_archive_manifest(archives, CFG)
+        assert ok, report
+
+    def test_missing_archive_fails(self):
+        archives, _ = build_archive_manifest(self.ZIPS[:-1])
+        ok, report = validate_archive_manifest(archives, CFG)
+        assert not ok
+        assert "missing archives" in report and "(5, 2)" in report
 
 
 @pytest.mark.parametrize("raw,expected", [

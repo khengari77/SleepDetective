@@ -25,7 +25,7 @@ video frame → MediaPipe Face Landmarker → per-frame feature vector
 
 ## 1. Hard constraints — read before writing any code
 
-**C1. Storage.** Total dataset is ~111 GB; individual videos are roughly 0.3–2 GB. At no point may more than one video exist on disk. The loop is strictly: download one file → extract features → verify feature file → delete video → next. Before every download, check free disk space; refuse to download if free space < (expected file size × 2 + 5 GB safety margin). Extracted features for the entire dataset should total well under 1 GB.
+**C1. Storage.** Total dataset is ~111 GB. The official Drive distribution (chosen source) ships it as **10 fold-part zip archives** (`Fold1_part1.zip` … `Fold5_part2.zip`, ~11 GB each), so the atomic download unit is one archive, not one video. At no point may more than ONE archive plus ONE unzipped member video exist on disk. The loop is strictly: download one archive → for each member video: unzip that member only → extract features → verify → delete the video → after all members, delete the archive → next. Before every archive download, check free disk space; refuse if free < (expected archive size, or 15 GB if unknown) × 1.5 + 5 GB margin. Extracted features for the entire dataset should total well under 1 GB. (The Kaggle mirror offers per-video downloads with a ~2 GB peak instead; it remains the fallback if disk is tight.)
 
 **C2. Resumability.** The extraction job will take many hours and WILL be interrupted. Maintain a manifest with per-video status (`pending | downloading | extracting | done | failed`). On restart, skip `done`, retry `failed` up to 3 times, treat `downloading`/`extracting` as `pending` (delete any partial artifacts first). Never re-download a video whose feature file exists and passes verification.
 
@@ -76,10 +76,10 @@ Use `uv` exclusively (see C6): `uv init`-style PEP 621 `pyproject.toml` + `uv.lo
 
 **Goal:** a `manifest.csv` enumerating all 180 videos with enough metadata to download each one individually, before downloading anything.
 
-The dataset is distributed two ways; support the first, fall back to the second:
+The dataset is distributed two ways; the official Drive folder is the chosen primary source (user decision, 2026-07-12):
 
-1. **Kaggle mirror** (`rishab260/uta-reallife-drowsiness-dataset`). The Kaggle API supports listing files (`kaggle datasets files <slug>`) and downloading a single file (`kaggle datasets download <slug> -f <path>`), which fits the one-file-at-a-time constraint perfectly. Requires the user's `kaggle.json` credentials — ask the user to provide them; do not proceed without.
-2. **Official Google Drive folders** (linked from the UTA-RLDD site, organized as Fold1..Fold5). Use `gdown` with individual file IDs; enumerate folder contents once to harvest IDs into the manifest. Google Drive imposes quota limits on large public files — if downloads start failing with quota errors, back off (hours) and resume; this is exactly why C2 exists.
+1. **Official Google Drive folder** (`drive.google.com/drive/folders/1d_QwgpMXnLY_FmLYXDn7TLcw0D-svXEl`, linked from the UTA-RLDD site). Contains 10 fold-part **zip archives**, not individual videos, so the manifest is two-level: `data/manifest_archives.csv` (10 rows, harvested via `gdown` folder enumeration — DONE) and `data/manifest.csv` (per-video rows, registered as each archive is opened during extraction; full 60×3 validation completes progressively and is finalized at Milestone 3). Download archives with `gdown` by file ID. Google Drive imposes quota limits on large public files — if downloads fail with quota errors, back off (hours) and resume; this is exactly why C2 exists.
+2. **Kaggle mirror** (`rishab260/uta-reallife-drowsiness-dataset`) — fallback; supports true per-video downloads (`kaggle datasets download <slug> -f <path>`) if Drive quotas wedge or disk headroom is insufficient for 11 GB archives. Requires the user's `kaggle.json`.
 
 Manifest columns: `video_id, source_path, download_ref (kaggle path or drive file id), fold (1–5), subject_id, class_label (0/5/10), expected_size_bytes (if listable), status, attempts, feature_file, extracted_at, error_msg`.
 
@@ -97,15 +97,20 @@ Loop skeleton (in `acquire.py`):
 
 ```
 wipe data/tmp/
-for row in manifest where status != done:
+for archive in manifest_archives where status != done:
     check disk space (C1); abort with clear message if insufficient
-    download → data/tmp/<video_id>.<ext>          [status: downloading]
-    verify download (size matches if known; file opens in cv2/ffprobe)
-    extract features → data/features/<video_id>.parquet   [status: extracting]
-    run verify.py checks on the parquet
-    delete video from tmp                          [status: done]
-    flush manifest to disk after EVERY status change
+    download zip → data/tmp/<archive_id>.zip       [archive: downloading]
+    list zip members; register/refresh per-video rows in manifest.csv
+    for video row in this archive where status != done:
+        unzip ONLY that member → data/tmp/         [video: extracting]
+        extract features → data/features/<video_id>.parquet
+        run verify.py checks on the parquet
+        delete video from tmp                      [video: done]
+        flush manifest to disk after EVERY status change
+    delete zip from tmp                            [archive: done]
 ```
+
+On restart with a partially processed archive: the zip is gone (tmp wiped), so re-download it, but skip member videos already `done` — their parquets exist and verify. Never mark an archive `done` while any member is not `done`/`failed`.
 
 Wrap each step in try/except; on failure, record `error_msg`, increment `attempts`, delete partial artifacts, continue with the next video. Log a running summary every video: n done / n failed / ETA / total feature bytes.
 
@@ -202,7 +207,7 @@ Keep training CPU-feasible: with ~thousands of windows and <100k params this tra
 | # | Milestone | Done when |
 |---|---|---|
 | 0 | uv migration (C6) | PEP 621 `pyproject.toml` + `uv.lock` committed; `requirements.txt` and `poetry.lock` deleted; `uv run python main.py --help` works |
-| 1 | Repo + config + manifest | manifest.csv validates: 60 subjects × 3 videos, 5 folds × 12 subjects (gaps explicitly flagged) |
+| 1 | Repo + config + manifest | manifest_archives.csv validates: 10 fold-part archives with Drive IDs; per-video manifest logic unit-tested (full 60×3 validation completes at milestone 3, since Drive ships zips) |
 | 2 | Extraction pipeline on a 3-video smoke test | 3 parquets pass verify.py; tmp/ empty; manifest statuses correct after a simulated mid-run kill + restart |
 | 3 | Full extraction | ≥ 95% of videos `done`; failures documented; total features < 1.5 GB; zero videos on disk |
 | 4 | Windowing + normalization | unit tests pass; window counts logged per video; calibration segments excluded |

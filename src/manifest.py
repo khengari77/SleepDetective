@@ -32,6 +32,55 @@ MANIFEST_COLUMNS = [
 VIDEO_EXTENSIONS = {".mov", ".mp4", ".m4v", ".avi"}
 CLASS_LABELS = {"0", "5", "10"}
 
+# The official Drive distribution ships 10 zip archives, one per fold-part
+# (Fold1_part1.zip .. Fold5_part2.zip), ~11 GB each — not individual videos.
+ARCHIVE_COLUMNS = ["archive_id", "download_ref", "fold", "part",
+                   "expected_size_bytes", "status", "attempts", "error_msg"]
+ARCHIVE_RE = re.compile(r"fold\s*_?(\d)_part\s*_?(\d)\.zip$", re.IGNORECASE)
+
+
+def build_archive_manifest(files: list[tuple[str, int | None, str]]) -> tuple[pd.DataFrame, list[str]]:
+    """Archive-level manifest for the official Drive zip distribution."""
+    rows, skipped = [], []
+    for path, size, ref in files:
+        m = ARCHIVE_RE.search(path)
+        if not m:
+            skipped.append(f"not a fold archive: {path}")
+            continue
+        rows.append({
+            "archive_id": f"fold{m.group(1)}_part{m.group(2)}",
+            "download_ref": ref,
+            "fold": int(m.group(1)),
+            "part": int(m.group(2)),
+            "expected_size_bytes": size,
+            "status": "pending",
+            "attempts": 0,
+            "error_msg": "",
+        })
+    archives = pd.DataFrame(rows, columns=ARCHIVE_COLUMNS)
+    archives = archives.sort_values(["fold", "part"]).reset_index(drop=True)
+    return archives, skipped
+
+
+def validate_archive_manifest(archives: pd.DataFrame, cfg: dict) -> tuple[bool, str]:
+    ds = cfg["dataset"]
+    expected = {(f, p) for f in range(1, ds["n_folds"] + 1) for p in (1, 2)}
+    present = set(zip(archives["fold"], archives["part"]))
+    problems = []
+    if missing := expected - present:
+        problems.append(f"missing archives: {sorted(missing)}")
+    if extra := present - expected:
+        problems.append(f"unexpected archives: {sorted(extra)}")
+    if len(archives) != len(present):
+        problems.append("duplicate archive entries")
+    ok = not problems
+    report = "\n".join(
+        ["ARCHIVE MANIFEST VALIDATION", "=" * 40,
+         f"archives: {len(archives)} (expected {len(expected)})"]
+        + (["OK — all fold parts present"] if ok else [f"PROBLEM: {p}" for p in problems])
+    )
+    return ok, report
+
 
 @dataclass
 class ParsedVideo:
@@ -78,13 +127,31 @@ def parse_video_path(path: str, size_bytes: int | None = None) -> ParsedVideo:
     return ParsedVideo(path, fold, subject_id, class_label, size_bytes)
 
 
-def list_kaggle_files(slug: str) -> list[tuple[str, int | None]]:
-    """List all files in a Kaggle dataset as (path, size_bytes) tuples.
+def list_gdrive_files(folder_url: str) -> list[tuple[str, int | None, str]]:
+    """Enumerate the official RLDD Google Drive folder without downloading.
+
+    Returns (relative_path, size_bytes_or_None, drive_file_id) tuples.
+    Enumerates one Fold*_part* subfolder at a time to stay under gdown's
+    50-files-per-listing limit (each part holds ~18 files).
+    """
+    import gdown
+
+    top = gdown.download_folder(url=folder_url, skip_download=True, quiet=True)
+    if top is None:
+        raise RuntimeError(f"could not enumerate Drive folder {folder_url}")
+    files: list[tuple[str, int | None, str]] = []
+    for entry in top:
+        files.append((entry.path, None, entry.id))
+    return files
+
+
+def list_kaggle_files(slug: str) -> list[tuple[str, int | None, str]]:
+    """List all files in a Kaggle dataset as (path, size_bytes, ref) tuples.
 
     Uses the CLI (`kaggle datasets files -v`) with page-token pagination.
     Requires ~/.kaggle/kaggle.json.
     """
-    files: list[tuple[str, int | None]] = []
+    files: list[tuple[str, int | None, str]] = []
     page_token = None
     while True:
         cmd = ["kaggle", "datasets", "files", "-v", slug, "--page-size", "1000"]
@@ -104,7 +171,7 @@ def list_kaggle_files(slug: str) -> list[tuple[str, int | None]]:
             name = row.get("name") or row.get("ref")
             size = _parse_size(row.get("totalBytes") or row.get("size"))
             if name:
-                files.append((name, size))
+                files.append((name, size, name))
         if not page_token:
             return files
 
@@ -122,14 +189,14 @@ def _parse_size(value: str | None) -> int | None:
     return int(float(m.group(1)) * mult)
 
 
-def build_manifest(files: list[tuple[str, int | None]]) -> tuple[pd.DataFrame, list[str]]:
-    """Turn a raw file listing into the manifest DataFrame.
+def build_manifest(files: list[tuple[str, int | None, str]]) -> tuple[pd.DataFrame, list[str]]:
+    """Turn a raw (path, size, download_ref) listing into the manifest DataFrame.
 
     Returns (manifest, skipped) where skipped lists non-video or unparseable
     paths for the validation report.
     """
     rows, skipped = [], []
-    for path, size in files:
+    for path, size, ref in files:
         if Path(path).suffix.lower() not in VIDEO_EXTENSIONS:
             skipped.append(f"non-video: {path}")
             continue
@@ -140,7 +207,7 @@ def build_manifest(files: list[tuple[str, int | None]]) -> tuple[pd.DataFrame, l
         rows.append({
             "video_id": f"s{parsed.subject_id}_c{parsed.class_label:02d}",
             "source_path": path,
-            "download_ref": path,
+            "download_ref": ref,
             "fold": parsed.fold,
             "subject_id": parsed.subject_id,
             "class_label": parsed.class_label,
@@ -206,16 +273,35 @@ def load_config(path: str = "configs/default.yaml") -> dict:
 @app.command()
 def build(
     config: str = "configs/default.yaml",
-    listing: str = typer.Option(None, help="Offline CSV (path,size_bytes) instead of the Kaggle API"),
+    source: str = typer.Option("gdrive", help="gdrive (official Drive folder) or kaggle"),
+    listing: str = typer.Option(None, help="Offline CSV (path,size_bytes,ref) instead of a remote listing"),
 ):
-    """Build data/manifest.csv from the Kaggle file listing (or an offline CSV)."""
+    """Build data/manifest.csv from the official Drive folder (or Kaggle / offline CSV)."""
     cfg = load_config(config)
     if listing:
         with open(listing) as f:
-            files = [(r["path"], int(r["size_bytes"]) if r.get("size_bytes") else None)
+            files = [(r["path"],
+                      int(r["size_bytes"]) if r.get("size_bytes") else None,
+                      r.get("ref") or r["path"])
                      for r in csv.DictReader(f)]
-    else:
+    elif source == "gdrive":
+        files = list_gdrive_files(cfg["dataset"]["gdrive_folder"])
+        archives, skipped = build_archive_manifest(files)
+        ok, report = validate_archive_manifest(archives, cfg)
+        for s in skipped:
+            print(f"skipped {s}")
+        print(report)
+        out = Path(cfg["paths"]["archive_manifest"])
+        out.parent.mkdir(parents=True, exist_ok=True)
+        archives.to_csv(out, index=False)
+        print(f"\nwrote {out} ({len(archives)} archives)")
+        print("Per-video manifest rows are registered as each archive is opened "
+              "during extraction (Drive distributes zips, not videos).")
+        raise typer.Exit(code=0 if ok else 1)
+    elif source == "kaggle":
         files = list_kaggle_files(cfg["dataset"]["kaggle_slug"])
+    else:
+        raise typer.BadParameter(f"unknown source {source!r}")
     manifest, skipped = build_manifest(files)
     ok, report = validate_manifest(manifest, cfg)
     for s in skipped:

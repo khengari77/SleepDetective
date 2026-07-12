@@ -20,6 +20,7 @@ dependencies = [
     "pyarrow>=25.0.0",
     "pyyaml>=6.0.3",
     "kaggle>=1.7.4.5",
+    "gdown>=6.1.0",
 ]
 
 # python-prctl (pulled in by picamera2) is sdist-only and needs libcap headers

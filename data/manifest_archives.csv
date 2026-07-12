@@ -1,0 +1,11 @@
+archive_id,download_ref,fold,part,expected_size_bytes,status,attempts,error_msg
+fold1_part1,16x8afSOwfbdGAjUbfRFvwGj1ie8Lf5Do,1,1,,pending,0,
+fold1_part2,1qPoJ06jeznytP_BGJ25hxdQy7eYTTjyk,1,2,,pending,0,
+fold2_part1,12uVMVLv_kRXzQb4QDdru9RK3G9hzfpPQ,2,1,,pending,0,
+fold2_part2,1nYGUpqE3x5ZeRLgDeMlUN4K_ccPjM2pe,2,2,,pending,0,
+fold3_part1,1-JhE5TfkNyr4UbQk6PSkkpI7z-SChkWS,3,1,,pending,0,
+fold3_part2,1LZU5KfJkFMj2pIkGwb3RjHDazoUfxSYQ,3,2,,pending,0,
+fold4_part1,1IYKdrjvawf90bG_cfeoWA4rZSymllFbD,4,1,,pending,0,
+fold4_part2,1zJlASBwABBgVSULQLiia0R_Eqar8_B3D,4,2,,pending,0,
+fold5_part1,16w30wEgcAbaUr4gx9o4sl_2TbIunD5yA,5,1,,pending,0,
+fold5_part2,1loOQE1-hoNM5dIOjXHI2Ss5NjjoPZcX6,5,2,,pending,0,

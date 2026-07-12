@@ -2,12 +2,15 @@
 
 paths:
   manifest: data/manifest.csv
+  archive_manifest: data/manifest_archives.csv
   features_dir: data/features
   tmp_dir: data/tmp
   reports_dir: reports
   landmarker_task: data/face_landmarker_v2_with_blendshapes.task
 
 dataset:
+  # official distribution: https://sites.google.com/view/utarldd/home
+  gdrive_folder: https://drive.google.com/drive/folders/1d_QwgpMXnLY_FmLYXDn7TLcw0D-svXEl
   kaggle_slug: rishab260/uta-reallife-drowsiness-dataset
   n_subjects: 60
   videos_per_subject: 3
