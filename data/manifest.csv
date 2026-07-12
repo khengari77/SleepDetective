@@ -1,7 +1,7 @@
 video_id,source_path,download_ref,fold,subject_id,class_label,expected_size_bytes,container,status,attempts,feature_file,extracted_at,error_msg,archive_id
-f1_s01_c00,Fold1_part1/01/0.mov,Fold1_part1/01/0.mov,1,01,0,1142591554,mov,extracting,0,,,,fold1_part1
-f1_s01_c05,Fold1_part1/01/5.mov,Fold1_part1/01/5.mov,1,01,5,475181147,mov,pending,0,,,,fold1_part1
-f1_s01_c10,Fold1_part1/01/10.MOV,Fold1_part1/01/10.MOV,1,01,10,461505450,mov,pending,0,,,,fold1_part1
+f1_s01_c00,Fold1_part1/01/0.mov,Fold1_part1/01/0.mov,1,01,0,1142591554,mov,done,0,data/features/f1_s01_c00.parquet,2026-07-12T10:01:58+00:00,,fold1_part1
+f1_s01_c05,Fold1_part1/01/5.mov,Fold1_part1/01/5.mov,1,01,5,475181147,mov,done,0,data/features/f1_s01_c05.parquet,2026-07-12T10:14:58+00:00,,fold1_part1
+f1_s01_c10,Fold1_part1/01/10.MOV,Fold1_part1/01/10.MOV,1,01,10,461505450,mov,done,0,data/features/f1_s01_c10.parquet,2026-07-12T10:27:52+00:00,,fold1_part1
 f1_s02_c00,Fold1_part1/02/0.mov,Fold1_part1/02/0.mov,1,02,0,808348620,mov,pending,0,,,,fold1_part1
 f1_s02_c05,Fold1_part1/02/5.MOV,Fold1_part1/02/5.MOV,1,02,5,1296098203,mov,pending,0,,,,fold1_part1
 f1_s02_c10,Fold1_part1/02/10.MOV,Fold1_part1/02/10.MOV,1,02,10,1299917174,mov,pending,0,,,,fold1_part1

@@ -300,7 +300,9 @@ def extract_video(video_path: str | Path, out_path: str | Path, cfg: dict,
          **{k.encode(): str(v).encode() for k, v in metadata.items()}})
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    pq.write_table(table, out_path)
+    # zstd: ~35% smaller than default snappy, keeps the 180-video total
+    # under milestone 3's 1.5 GB budget
+    pq.write_table(table, out_path, compression="zstd")
 
     return {
         "rows": len(df),
