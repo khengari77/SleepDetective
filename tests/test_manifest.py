@@ -29,7 +29,7 @@ def synthetic_listing(missing: set[str] = frozenset()):
             part = 1 if i < 6 else 2
             for label in (0, 5, 10):
                 path = f"Fold{fold}_part{part}/{subject:02d}/{label}.MOV"
-                if f"s{subject:02d}_c{label:02d}" not in missing:
+                if f"f{fold}_s{subject:02d}_c{label:02d}" not in missing:
                     files.append((path, 500_000_000, f"driveid_{subject:02d}_{label}"))
     return files
 
@@ -79,7 +79,7 @@ class TestValidateManifest:
         assert "OK" in report
 
     def test_missing_video_fails_with_flag(self):
-        manifest, _ = build_manifest(synthetic_listing(missing={"s07_c05"}))
+        manifest, _ = build_manifest(synthetic_listing(missing={"f1_s07_c05"}))
         ok, report = validate_manifest(manifest, CFG)
         assert not ok
         assert "missing videos" in report and "07" in report

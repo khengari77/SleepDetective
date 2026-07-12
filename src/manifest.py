@@ -205,7 +205,7 @@ def build_manifest(files: list[tuple[str, int | None, str]]) -> tuple[pd.DataFra
             skipped.append(f"unparseable: {path}")
             continue
         rows.append({
-            "video_id": f"s{parsed.subject_id}_c{parsed.class_label:02d}",
+            "video_id": f"f{parsed.fold}_s{parsed.subject_id}_c{parsed.class_label:02d}",
             "source_path": path,
             "download_ref": ref,
             "fold": parsed.fold,

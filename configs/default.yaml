@@ -20,8 +20,8 @@ dataset:
 
 acquire:
   max_attempts: 3
-  # refuse download if free < expected_size * factor + margin (C1)
-  free_space_factor: 2.0
+  # refuse download if free < expected_archive_size * factor + margin (C1)
+  free_space_factor: 1.5
   free_space_margin_gb: 5.0
 
 extract:
