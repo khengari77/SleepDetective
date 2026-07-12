@@ -23,6 +23,11 @@ from src.verify import verify_feature_file
 
 app = typer.Typer(add_completion=False)
 
+
+@app.callback()
+def _cli():
+    """SleepDetective v2 dataset acquisition (keeps `run` a named subcommand)."""
+
 DEFAULT_ARCHIVE_SIZE = 15 * 1024**3  # assume 15 GB when Drive won't tell us
 
 
