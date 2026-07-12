@@ -5,6 +5,7 @@ paths:
   archive_manifest: data/manifest_archives.csv
   features_dir: data/features
   tmp_dir: data/tmp
+  archives_dir: data/archives   # prefetched zips; each deleted after extraction
   reports_dir: reports
   landmarker_task: data/face_landmarker_v2_with_blendshapes.task
 

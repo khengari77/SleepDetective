@@ -108,6 +108,22 @@ def download_archive(download_ref: str, dest: Path) -> Path:
     return dest
 
 
+def wait_for_prefetch(prefetched: Path, max_wait_sec: int = 3600) -> bool:
+    """If the prefetcher is mid-download for this archive (gdown .part file
+    present), wait for it to finish instead of double-downloading."""
+    import time
+
+    waited = 0
+    while waited < max_wait_sec:
+        if prefetched.exists():
+            return True
+        if not list(prefetched.parent.glob(f"{prefetched.name}*part*")):
+            return prefetched.exists()
+        time.sleep(30)
+        waited += 30
+    return prefetched.exists()
+
+
 def process_video(row: pd.Series, zf: zipfile.ZipFile, tmp: Path,
                   cfg: dict, manifests: Manifests) -> bool:
     """Unzip one member → extract features → verify → delete video."""
@@ -166,18 +182,27 @@ def run(
     todo = manifests.archives[
         (manifests.archives["status"] != "done")
         & (manifests.archives["attempts"] < max_attempts)]
+    archives_dir = Path(cfg["paths"].get("archives_dir", "data/archives"))
     for _, arc in todo.iterrows():
         archive_id = arc["archive_id"]
+        prefetched = archives_dir / f"{archive_id}.zip"
         zip_path = tmp / f"{archive_id}.zip"
         try:
-            size = arc["expected_size_bytes"]
-            check_disk_space(tmp, int(size) if pd.notna(size) else None, cfg)
-            manifests.set_archive(archive_id, status="downloading",
-                                  attempts=int(arc["attempts"]) + 1)
-            print(f"downloading {archive_id} …")
-            download_archive(arc["download_ref"], zip_path)
-            manifests.set_archive(archive_id, status="extracting",
-                                  expected_size_bytes=zip_path.stat().st_size)
+            if wait_for_prefetch(prefetched, max_wait_sec=0) or wait_for_prefetch(prefetched):
+                zip_path = prefetched
+                print(f"using prefetched {zip_path}", flush=True)
+                manifests.set_archive(archive_id, status="extracting",
+                                      attempts=int(arc["attempts"]) + 1,
+                                      expected_size_bytes=zip_path.stat().st_size)
+            else:
+                size = arc["expected_size_bytes"]
+                check_disk_space(tmp, int(size) if pd.notna(size) else None, cfg)
+                manifests.set_archive(archive_id, status="downloading",
+                                      attempts=int(arc["attempts"]) + 1)
+                print(f"downloading {archive_id} …", flush=True)
+                download_archive(arc["download_ref"], zip_path)
+                manifests.set_archive(archive_id, status="extracting",
+                                      expected_size_bytes=zip_path.stat().st_size)
 
             with zipfile.ZipFile(zip_path) as zf:
                 rows = manifests.register_videos(archive_id, zf.infolist())
@@ -207,6 +232,44 @@ def run(
         if max_archives and archives_now >= max_archives:
             print("max-archives reached — stopping")
             return
+
+
+@app.command()
+def download(config: str = "configs/default.yaml"):
+    """Prefetch ALL pending archives to archives_dir (user-relaxed C1,
+    2026-07-12: bulk download OK; zips still deleted after extraction).
+
+    Touches no manifest state, so it can run alongside `run`.
+    """
+    cfg = load_config(config)
+    archives_dir = Path(cfg["paths"].get("archives_dir", "data/archives"))
+    archives_dir.mkdir(parents=True, exist_ok=True)
+    manifests = Manifests(cfg)
+
+    todo = manifests.archives[manifests.archives["status"] != "done"]
+    remaining = [a for _, a in todo.iterrows()
+                 if not (archives_dir / f"{a['archive_id']}.zip").exists()]
+    total_expected = sum(int(a["expected_size_bytes"]) if pd.notna(a["expected_size_bytes"])
+                         else DEFAULT_ARCHIVE_SIZE for a in remaining)
+    free = shutil.disk_usage(archives_dir).free
+    needed = total_expected * 1.1 + cfg["acquire"]["free_space_margin_gb"] * 1024**3
+    if free < needed:
+        raise RuntimeError(f"bulk prefetch needs {needed / 1e9:.0f} GB free, "
+                           f"have {free / 1e9:.0f} GB")
+
+    print(f"prefetching {len(remaining)} archives "
+          f"(~{total_expected / 1e9:.0f} GB) → {archives_dir}", flush=True)
+    failures = 0
+    for arc in remaining:
+        dest = archives_dir / f"{arc['archive_id']}.zip"
+        try:
+            print(f"prefetch {arc['archive_id']} …", flush=True)
+            download_archive(arc["download_ref"], dest)
+        except Exception as exc:
+            failures += 1
+            print(f"✗ prefetch {arc['archive_id']}: {exc}", flush=True)
+    print(f"prefetch finished, {failures} failures "
+          f"(run will self-download any missing archive)", flush=True)
 
 
 def _summary(manifests: Manifests):
