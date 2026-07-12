@@ -22,7 +22,17 @@ dependencies = [
     "kaggle>=1.7.4.5",
     "gdown>=6.1.0",
     "scikit-learn>=1.7.2",
+    "torch>=2.13.0",
 ]
+
+# CPU-only torch (PLAN.md §6: no GPU dependency anywhere in the project)
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
 
 # python-prctl (pulled in by picamera2) is sdist-only and needs libcap headers
 # just to build its metadata; declare it statically so locking works off-Pi.

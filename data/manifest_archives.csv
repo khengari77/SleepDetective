@@ -1,5 +1,5 @@
 archive_id,download_ref,fold,part,expected_size_bytes,status,attempts,error_msg
-fold1_part1,16x8afSOwfbdGAjUbfRFvwGj1ie8Lf5Do,1,1,12880106338.0,extracting,1,
+fold1_part1,16x8afSOwfbdGAjUbfRFvwGj1ie8Lf5Do,1,1,12880106338.0,downloading,2,
 fold1_part2,1qPoJ06jeznytP_BGJ25hxdQy7eYTTjyk,1,2,,pending,0,
 fold2_part1,12uVMVLv_kRXzQb4QDdru9RK3G9hzfpPQ,2,1,,pending,0,
 fold2_part2,1nYGUpqE3x5ZeRLgDeMlUN4K_ccPjM2pe,2,2,,pending,0,
