@@ -192,13 +192,13 @@ def run(
                 zip_path = prefetched
                 print(f"using prefetched {zip_path}", flush=True)
                 manifests.set_archive(archive_id, status="extracting",
-                                      attempts=int(arc["attempts"]) + 1,
                                       expected_size_bytes=zip_path.stat().st_size)
             else:
                 size = arc["expected_size_bytes"]
                 check_disk_space(tmp, int(size) if pd.notna(size) else None, cfg)
-                manifests.set_archive(archive_id, status="downloading",
-                                      attempts=int(arc["attempts"]) + 1)
+                # attempts counts FAILURES only — interrupted runs must not
+                # burn retry budget (a restart is not a failure)
+                manifests.set_archive(archive_id, status="downloading")
                 print(f"downloading {archive_id} …", flush=True)
                 download_archive(arc["download_ref"], zip_path)
                 manifests.set_archive(archive_id, status="extracting",
@@ -223,7 +223,9 @@ def run(
             if len(not_done) == 0:
                 manifests.set_archive(archive_id, status="done", error_msg="")
         except Exception as exc:  # quota/auth/corrupt zip — never wedge the loop (§9.1)
-            manifests.set_archive(archive_id, status="failed", error_msg=str(exc)[:500])
+            manifests.set_archive(archive_id, status="failed",
+                                  attempts=int(arc["attempts"]) + 1,
+                                  error_msg=str(exc)[:500])
             print(f"✗ {archive_id}: {exc}")
         finally:
             zip_path.unlink(missing_ok=True)
