@@ -14,11 +14,23 @@ from itertools import combinations
 
 import numpy as np
 import pandas as pd
+import typer
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import f1_score
 from sklearn.neighbors import NearestCentroid
 
-from src.windows import load_features
+from src.evaluate import cross_validate, save_report
+from src.manifest import load_config
+from src.windows import build_dataset, load_features
+
+app = typer.Typer(add_completion=False)
+
+
+@app.callback()
+def _cli():
+    """SleepDetective v2 baselines: B1 PERCLOS heuristic, B2 window-stats
+    GBT, B3 majority/identity-probe floor (PLAN.md §6)."""
+
 
 POSE_DEV_DEG = 10.0          # v1 HeadPose threshold
 YAWN_MAR_THRESHOLD = 0.6
@@ -191,3 +203,93 @@ def identity_probe_accuracy(stats: pd.DataFrame, subjects: np.ndarray) -> float:
     probe = NearestCentroid()
     probe.fit(stats.iloc[train_idx], subjects[train_idx])
     return float((probe.predict(stats.iloc[test_idx]) == subjects[test_idx]).mean())
+
+
+# --------------------------------------------------------------- Phase 5 CLI
+
+def filter_to_calibrated(ds: dict, calib: pd.DataFrame) -> dict:
+    """Drop windows whose subject has no B1 calibration (missing/failed alert
+    video) — B1 cannot score them, so they're excluded rather than guessed."""
+    keep = np.isin(ds["subject"], calib.index.to_numpy())
+    return {k: (v[keep] if isinstance(v, np.ndarray) else v) for k, v in ds.items()}
+
+
+def _b1_runner(calib: pd.DataFrame, n_classes: int):
+    def runner(train_idx, test_idx, ds):
+        scores = b1_window_scores(ds["X"], ds["mask"], ds["feature_cols"],
+                                  ds["subject"], calib)
+        model = B1Perclos(n_classes).fit(scores[train_idx], ds["y"][train_idx])
+        return model.predict(scores[test_idx])
+    return runner
+
+
+def _b2_runner(stats: pd.DataFrame, n_classes: int):
+    def runner(train_idx, test_idx, ds):
+        model = B2WindowStats().fit(stats.iloc[train_idx], ds["y"][train_idx])
+        return model.predict(stats.iloc[test_idx])
+    return runner
+
+
+def _b3_runner(n_classes: int):
+    def runner(train_idx, test_idx, ds):
+        model = B3Majority().fit(train_idx, ds["y"][train_idx])
+        return model.predict(test_idx)
+    return runner
+
+
+def run_b1(manifest: pd.DataFrame, cfg: dict, *, target: str) -> None:
+    """B1 has one calibrated variant per target — no raw/normalized axis:
+    its calibration IS the per-subject baseline, computed the v1 way
+    (mean/std, not build_dataset's median/IQR), so re-scoring it against
+    already baseline-normalized windows would just re-apply a second,
+    incompatible normalization on top."""
+    n_classes = 3 if target == "3class" else 2
+    calib = calibration_stats(manifest, cfg["windows"]["calibration_sec"])
+    ds_raw = build_dataset(manifest, cfg, normalized=False, target=target)
+    ds = filter_to_calibrated(ds_raw, calib)
+    excluded = sorted(set(ds_raw["subject"]) - set(ds["subject"]))
+
+    results = cross_validate(ds, _b1_runner(calib, n_classes), n_classes)
+    save_report(
+        f"b1_perclos_{target}", results,
+        {"windows": cfg["windows"], "target": target,
+         "note": "single calibrated variant; raw/normalized axis N/A for B1"},
+        cfg["paths"]["reports_dir"],
+        extras={"n_windows": len(ds["X"]),
+               "subjects_excluded_no_calibration": excluded})
+
+
+def run_b2_b3(manifest: pd.DataFrame, cfg: dict, *, normalized: bool, target: str) -> None:
+    n_classes = 3 if target == "3class" else 2
+    variant = "norm" if normalized else "raw"
+    ds = build_dataset(manifest, cfg, normalized=normalized, target=target)
+    stats = window_stats(ds["X"], ds["mask"], ds["feature_cols"], cfg["extract"]["target_fps"])
+    probe_acc = identity_probe_accuracy(stats, ds["subject"])  # PLAN §9.5: in every report
+
+    b2_results = cross_validate(ds, _b2_runner(stats, n_classes), n_classes)
+    save_report(f"b2_windowstats_{variant}_{target}", b2_results,
+               {"windows": cfg["windows"], "normalized": normalized, "target": target},
+               cfg["paths"]["reports_dir"],
+               extras={"n_windows": len(ds["X"]), "identity_probe_accuracy": probe_acc})
+
+    b3_results = cross_validate(ds, _b3_runner(n_classes), n_classes)
+    save_report(f"b3_floor_{variant}_{target}", b3_results,
+               {"windows": cfg["windows"], "normalized": normalized, "target": target},
+               cfg["paths"]["reports_dir"],
+               extras={"n_windows": len(ds["X"]), "identity_probe_accuracy": probe_acc})
+
+
+@app.command()
+def matrix(config: str = "configs/default.yaml"):
+    """The B1/B2/B3 quadrants of the results matrix (PLAN §7)."""
+    cfg = load_config(config)
+    manifest = pd.read_csv(cfg["paths"]["manifest"], dtype={"subject_id": str})
+    for target in ("3class", "binary"):
+        run_b1(manifest, cfg, target=target)
+        for normalized in (False, True):
+            run_b2_b3(manifest, cfg, normalized=normalized, target=target)
+    print(f"wrote baseline reports to {cfg['paths']['reports_dir']}")
+
+
+if __name__ == "__main__":
+    app()

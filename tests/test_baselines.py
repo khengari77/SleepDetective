@@ -13,6 +13,7 @@ from src.baselines import (
     B2WindowStats,
     B3Majority,
     b1_window_scores,
+    filter_to_calibrated,
     fit_score_thresholds,
     identity_probe_accuracy,
     window_stats,
@@ -113,6 +114,24 @@ class TestB3:
         stats = pd.DataFrame({"f": rng.normal(0, 1, 200)})
         subjects = np.repeat([f"{i:02d}" for i in range(10)], 20)
         assert identity_probe_accuracy(stats, subjects) < 0.35
+
+
+class TestFilterToCalibrated:
+    def test_drops_windows_of_uncalibrated_subjects(self):
+        ds = {"X": np.arange(4).reshape(4, 1, 1).astype(np.float32),
+              "mask": np.ones((4, 1), bool),
+              "y": np.array([0, 1, 0, 1]),
+              "subject": np.array(["01", "01", "99", "99"]),
+              "fold": np.array([1, 1, 2, 2]),
+              "video_id": np.array(["a", "a", "b", "b"]),
+              "feature_cols": ["ear_left"]}
+        calib = pd.DataFrame({"ear_mean": {"01": 0.3}, "ear_std": {"01": 0.05},
+                              "pitch_mean": {"01": 0.0}})
+
+        out = filter_to_calibrated(ds, calib)
+
+        assert list(out["subject"]) == ["01", "01"]
+        assert out["feature_cols"] == ["ear_left"]  # non-array fields pass through
 
 
 def test_run_lengths():
