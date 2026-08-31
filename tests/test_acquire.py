@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.acquire import Manifests, check_disk_space
+from src.acquire import Manifests, check_disk_space, select_archives
 from src.manifest import ARCHIVE_COLUMNS, MANIFEST_COLUMNS
 
 
@@ -89,6 +89,47 @@ class TestResumeLogic:
         rows = m.register_videos(
             "fold1_part1", zip_members(["Fold1_part1/01/0.mp4", "__MACOSX/x", "a.txt"]))
         assert len(rows) == 1
+
+
+class TestRetrySelection:
+    def test_done_archive_with_retryable_failed_member_is_reselected(self, tmp_path):
+        """C2: retry `failed` up to max_attempts, even after the archive
+        itself was marked `done` (a `done` archive may hold `failed` members)."""
+        cfg = make_cfg(tmp_path)
+        seed_archives(cfg, ["done", "done"])
+        m = Manifests(cfg)
+        m.videos = pd.DataFrame([
+            {**dict.fromkeys(MANIFEST_COLUMNS, ""), "video_id": "f1_s01_c00",
+             "status": "failed", "attempts": 1, "archive_id": "fold1_part1"},
+            {**dict.fromkeys(MANIFEST_COLUMNS, ""), "video_id": "f1_s02_c00",
+             "status": "done", "attempts": 0, "archive_id": "fold1_part2"},
+        ])
+
+        todo = select_archives(m, max_attempts=3)
+
+        assert list(todo["archive_id"]) == ["fold1_part1"]
+
+    def test_failed_member_at_max_attempts_is_not_retried(self, tmp_path):
+        cfg = make_cfg(tmp_path)
+        seed_archives(cfg, ["done"])
+        m = Manifests(cfg)
+        m.videos = pd.DataFrame([
+            {**dict.fromkeys(MANIFEST_COLUMNS, ""), "video_id": "f1_s01_c00",
+             "status": "failed", "attempts": 3, "archive_id": "fold1_part1"},
+        ])
+
+        todo = select_archives(m, max_attempts=3)
+
+        assert len(todo) == 0
+
+    def test_pending_archive_still_selected_without_any_videos(self, tmp_path):
+        cfg = make_cfg(tmp_path)
+        seed_archives(cfg, ["pending"])
+        m = Manifests(cfg)
+
+        todo = select_archives(m, max_attempts=3)
+
+        assert list(todo["archive_id"]) == ["fold1_part1"]
 
 
 class TestDiskSpaceGate:

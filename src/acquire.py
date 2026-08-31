@@ -88,6 +88,21 @@ class Manifests:
         return self.videos[self.videos["archive_id"] == archive_id]
 
 
+def select_archives(manifests: "Manifests", max_attempts: int) -> pd.DataFrame:
+    """Archives to (re)open: not yet done, or `done` but still holding a
+    retryable `failed` member — C2 promises retrying failures up to
+    `max_attempts` on restart, and a `done` archive is allowed to have
+    `failed` members (see the `not_done` check in `run`)."""
+    retry_ids = set(manifests.videos.loc[
+        (manifests.videos["status"] == "failed")
+        & (manifests.videos["attempts"] < max_attempts),
+        "archive_id"])
+    return manifests.archives[
+        ((manifests.archives["status"] != "done")
+         | manifests.archives["archive_id"].isin(retry_ids))
+        & (manifests.archives["attempts"] < max_attempts)]
+
+
 def check_disk_space(tmp_dir: Path, expected_size: int | None, cfg: dict):
     a = cfg["acquire"]
     expected = expected_size or DEFAULT_ARCHIVE_SIZE
@@ -179,9 +194,7 @@ def run(
     max_attempts = cfg["acquire"]["max_attempts"]
     done_now = archives_now = 0
 
-    todo = manifests.archives[
-        (manifests.archives["status"] != "done")
-        & (manifests.archives["attempts"] < max_attempts)]
+    todo = select_archives(manifests, max_attempts)
     archives_dir = Path(cfg["paths"].get("archives_dir", "data/archives"))
     for _, arc in todo.iterrows():
         archive_id = arc["archive_id"]
