@@ -15,6 +15,7 @@ import torch
 import typer
 from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader, TensorDataset
+from tqdm import tqdm
 
 from src.evaluate import cross_validate, save_report
 from src.manifest import load_config
@@ -42,7 +43,7 @@ def _loader(X, mask, y, batch_size, shuffle):
 
 
 def train_one_fold(train_idx: np.ndarray, test_idx: np.ndarray, ds: dict,
-                   cfg: dict, n_classes: int) -> np.ndarray:
+                   cfg: dict, n_classes: int, desc: str = "fold") -> np.ndarray:
     t = cfg["train"]
     torch.manual_seed(t["seed"])
 
@@ -63,7 +64,8 @@ def train_one_fold(train_idx: np.ndarray, test_idx: np.ndarray, ds: dict,
                            t["batch_size"], shuffle=True)
 
     best_f1, best_state, patience_left = -1.0, None, t["early_stop_patience"]
-    for epoch in range(t["max_epochs"]):
+    bar = tqdm(range(t["max_epochs"]), desc=desc, leave=False, unit="epoch")
+    for epoch in bar:
         model.train()
         for xb, mb, yb in train_loader:
             opt.zero_grad()
@@ -82,8 +84,11 @@ def train_one_fold(train_idx: np.ndarray, test_idx: np.ndarray, ds: dict,
             best_state = {k: v.clone() for k, v in model.state_dict().items()}
         else:
             patience_left -= 1
-            if patience_left == 0:
-                break
+        bar.set_postfix(val_f1=f"{val_f1:.3f}", best=f"{best_f1:.3f}",
+                        patience=patience_left)
+        if patience_left == 0:
+            break
+    bar.close()
 
     if best_state is not None:
         model.load_state_dict(best_state)
@@ -99,9 +104,11 @@ def run_experiment(cfg: dict, *, normalized: bool, target: str,
     ds = build_dataset(manifest, cfg, normalized=normalized, target=target,
                        feature_set=feature_set)
     n_classes = 3 if target == "3class" else 2
-    runner = lambda tr, te, d: train_one_fold(tr, te, d, cfg, n_classes)
-    results = cross_validate(ds, runner, n_classes)
     name = report_name or f"m1_gru_{'norm' if normalized else 'raw'}_{target}"
+    print(f"=== {name}: {len(ds['X'])} windows, {len(np.unique(ds['fold']))} folds ===")
+    runner = lambda tr, te, d: train_one_fold(
+        tr, te, d, cfg, n_classes, desc=f"{name} fold{d['fold'][te][0]}")
+    results = cross_validate(ds, runner, n_classes)
     path = save_report(name, results, {"model": cfg["model"], "train": cfg["train"],
                                        "windows": cfg["windows"],
                                        "normalized": normalized, "target": target},

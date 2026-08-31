@@ -23,6 +23,7 @@ dependencies = [
     "gdown>=6.1.0",
     "scikit-learn>=1.7.2",
     "torch>=2.13.0",
+    "tqdm>=4.68.4",
 ]
 
 # CPU-only torch (PLAN.md §6: no GPU dependency anywhere in the project)
