@@ -16,3 +16,4 @@ data/features/*
 *.task
 .pytest_cache/
 data/archives/
+data/release/

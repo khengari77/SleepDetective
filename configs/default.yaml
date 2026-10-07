@@ -56,3 +56,10 @@ train:
   early_stop_patience: 10
   val_subjects_per_fold: 2   # carved out of training folds BY SUBJECT
   seed: 77
+
+release:
+  # private until UTA-RLDD redistribution terms for derived data are confirmed
+  dir: data/release
+  title: UTA-RLDD Face Features
+  slug: uta-rldd-face-features
+  hf_repo: khengari77/uta-rldd-face-features
