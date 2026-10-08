@@ -8,14 +8,17 @@ Builds `release.dir` with:
 
 Every video with a parquet is shipped — including those that failed the
 verification gate — flagged by `passed_verification` so users pick their own
-filter. Uploads are private only: UTA-RLDD has no stated license, so nothing
-goes public until redistribution of derived features is confirmed.
+filter. Uploads are public under CC BY 4.0 (user decision, 2025-10-08): the
+release holds only derived numeric features, carries the UTA-RLDD citation,
+and contains no identity information. The upload commands load HF_TOKEN from
+a local .env (never printed).
 
 Usage:
     uv run python -m src.export_dataset build
     uv run python -m src.export_dataset upload-hf
     uv run python -m src.export_dataset upload-kaggle --owner <kaggle-user>
 """
+
 from __future__ import annotations
 
 import json
@@ -27,6 +30,12 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import typer
 
+from src.derived_features import (
+    FEATURE_DOCS,
+    WINDOW_COLUMNS,
+    subject_agreement,
+    video_windows,
+)
 from src.manifest import load_config
 
 app = typer.Typer(add_completion=False)
@@ -44,7 +53,7 @@ METADATA_COLUMNS = [
 
 @app.callback()
 def _cli():
-    """Build and privately upload the UTA-RLDD feature dataset."""
+    """Build and publish the UTA-RLDD feature dataset (CC BY 4.0)."""
 
 
 def with_identity_columns(table: pa.Table, video_id: str, subject_id: str,
@@ -95,7 +104,45 @@ def metadata_row(row: pd.Series, table: pa.Table) -> dict:
     }
 
 
-def render_card(meta: pd.DataFrame, n_columns: int, cfg: dict) -> str:
+def render_windows_section(windows: pd.DataFrame, cfg: dict) -> str:
+    w = cfg["windows"]
+    min_valid = 1 - w["max_undetected_frac"]
+    usable = windows[windows["passed_verification"] & (windows["valid_frac"] >= min_valid)]
+    agree = subject_agreement(usable).set_index("feature")
+    n = int(agree.iloc[0][["agree", "disagree", "tie"]].sum())
+    rows = "\n".join(
+        f"| `{f}` | {desc} | {'↑' if sign > 0 else '↓'} | "
+        f"{agree.at[f, 'agree']} / {agree.at[f, 'disagree']} |"
+        for f, (sign, desc) in FEATURE_DOCS.items())
+    return f"""
+## Window-level drowsiness features (`windows.parquet`)
+
+{len(windows):,} sliding windows ({w['length_sec']:g} s long, {w['stride_sec']:g} s
+stride) with 20 literature-derived signals, computed by `src/derived_features.py`.
+Every window is kept: filter on `passed_verification` and `valid_frac` (fraction
+of frames with a detected face). Values are raw; normalize per subject (e.g.
+against the first 60 s of their alert video) before pooling subjects.
+Blink-dynamics columns are null in windows without a usable blink.
+
+The last column is a descriptive sanity check, not a model result: across the
+{n} subjects with both an alert and a drowsy video that pass verification
+(windows with `valid_frac ≥ {min_valid:g}`), how many subjects' drowsy-video
+mean moves in the expected direction vs. against it.
+
+| feature | definition | expected when drowsy | subjects agree / disagree |
+|---|---|---|---|
+{rows}
+
+At 10 fps a blink spans 1–4 frames: durations are quantized to 100 ms, short
+blinks are under-counted (~8/min detected in alert videos vs. a typical
+15–20), and velocity-based features are coarse. MediaPipe's `eyeBlink` score
+saturates near 0.6–0.8 on closed eyes, so PERCLOS uses a single "closed"
+threshold (≥ 0.5) rather than the classic P70/P80 split.
+"""
+
+
+def render_card(meta: pd.DataFrame, n_columns: int, cfg: dict,
+                windows: pd.DataFrame | None = None) -> str:
     rel = cfg["release"]
     passed = int(meta["passed_verification"].sum())
     by_class = meta.groupby("class_label").size()
@@ -107,10 +154,15 @@ def render_card(meta: pd.DataFrame, n_columns: int, cfg: dict) -> str:
         for r in failed.itertuples())
     hours = meta["duration_sec"].sum() / 3600
     gate = cfg["verify"]["min_face_detected_rate"]
+    has_windows = windows is not None
+    windows_config = ("  - config_name: windows\n    data_files: windows.parquet\n"
+                      if has_windows else "")
+    windows_file = ("| `windows.parquet` | one row per 60 s window: 20 drowsiness features |\n"
+                    if has_windows else "")
+    windows_section = render_windows_section(windows, cfg) if has_windows else ""
     return f"""---
 pretty_name: {rel['title']}
-license: other
-license_name: uta-rldd-derived
+license: cc-by-4.0
 task_categories:
   - video-classification
   - tabular-classification
@@ -129,7 +181,7 @@ configs:
     default: true
   - config_name: videos
     data_files: metadata.csv
----
+{windows_config}---
 
 # {rel['title']}
 
@@ -159,7 +211,7 @@ carries the video's label.
 |---|---|
 | `features/<video_id>.parquet` | one row per sampled frame (zstd parquet) |
 | `metadata.csv` | one row per video: fold, subject, label, QC flags, provenance |
-
+{windows_file}
 `video_id` is `f<fold>_s<subject>_c<label>`, e.g. `f1_s01_c05`.
 
 ### Per-frame columns
@@ -178,7 +230,7 @@ carries the video's label.
 Per-file provenance (source fps, rotation applied, extractor version, MediaPipe
 version, detection thresholds) is stored in the parquet schema metadata and
 mirrored in `metadata.csv`.
-
+{windows_section}
 ## Quality control
 
 A video passes verification when its row count matches duration × fps (±10%),
@@ -221,10 +273,12 @@ windows randomly, since adjacent frames are near-duplicates.
 
 ## License and citation
 
-These features are derived from UTA-RLDD, which is distributed for research
-use. Redistribution terms for derived data are being confirmed with the
-dataset authors; until then, use for non-commercial research only and cite the
-original dataset:
+This derived feature dataset is released under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): commercial use,
+modification and redistribution are allowed, as long as you give credit.
+
+**Attribution — required by the license.** When you use these features, cite
+the source dataset:
 
 ```bibtex
 @inproceedings{{ghoddoosian2019realistic,
@@ -234,6 +288,12 @@ original dataset:
   year={{2019}}
 }}
 ```
+
+and link this dataset. The license covers only the derived numeric features
+shipped here. The source UTA-RLDD videos are not included and carry their own
+conditions (cite the paper; do not reveal subject identities) — this release
+contains no images, video, or identity information, only blendshape scores,
+facial geometry and head pose.
 """
 
 
@@ -243,7 +303,14 @@ def kaggle_metadata(owner: str, cfg: dict) -> dict:
         "title": rel["title"],
         "id": f"{owner}/{rel['slug']}",
         "subtitle": "Per-frame MediaPipe face features from UTA-RLDD drowsiness videos",
-        "licenses": [{"name": "other"}],
+        "description": (
+            "Derived numeric features (MediaPipe blendshapes, landmarks, EAR/MAR, head pose) "
+            "extracted from the UTA Real-Life Drowsiness Dataset (UTA-RLDD). No video or image "
+            "data. Released under CC BY 4.0 — commercial use allowed; attribution required: "
+            "cite Ghoddoosian, Galib & Athitsos, 'A Realistic Dataset and Baseline Temporal "
+            "Model for Early Drowsiness Detection', CVPR Workshops 2019 (arXiv:1904.07312)."
+        ),
+        "licenses": [{"name": "CC-BY-4.0"}],
         "keywords": ["health", "computer vision", "time series analysis"],
     }
 
@@ -257,7 +324,7 @@ def build(config: str = "configs/default.yaml"):
     manifest = pd.read_csv(cfg["paths"]["manifest"], dtype={"subject_id": str})
     features_dir = Path(cfg["paths"]["features_dir"])
 
-    rows, n_columns = [], 0
+    rows, window_rows, n_columns = [], [], 0
     for _, row in manifest.sort_values("video_id").iterrows():
         src = features_dir / f"{row['video_id']}.parquet"
         if not src.exists():
@@ -265,6 +332,10 @@ def build(config: str = "configs/default.yaml"):
             continue
         table = pq.read_table(src)
         rows.append(metadata_row(row, table))
+        for w in video_windows(table.to_pandas(), cfg):
+            window_rows.append({"video_id": row["video_id"], "subject_id": row["subject_id"],
+                                "fold": int(row["fold"]), "class_label": int(row["class_label"]),
+                                "passed_verification": row["status"] == "done", **w})
         table = with_identity_columns(table, row["video_id"], row["subject_id"],
                                       int(row["fold"]), int(row["class_label"]))
         n_columns = table.num_columns
@@ -272,44 +343,49 @@ def build(config: str = "configs/default.yaml"):
 
     meta = pd.DataFrame(rows, columns=METADATA_COLUMNS)
     meta.to_csv(out / "metadata.csv", index=False)
-    (out / "README.md").write_text(render_card(meta, n_columns, cfg))
+    windows = pd.DataFrame(window_rows, columns=WINDOW_COLUMNS)
+    windows.to_parquet(out / "windows.parquet", index=False, compression="zstd")
+    (out / "README.md").write_text(render_card(meta, n_columns, cfg, windows))
     print(f"wrote {len(meta)} videos "
           f"({int(meta['passed_verification'].sum())} passed) → {out}")
 
 
 @app.command("upload-hf")
 def upload_hf(config: str = "configs/default.yaml"):
-    """Create/update the Hugging Face dataset repo as PRIVATE."""
+    """Create/update the Hugging Face dataset repo as PUBLIC (CC BY 4.0)."""
+    from dotenv import load_dotenv
     from huggingface_hub import HfApi
 
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")  # HF_TOKEN; never printed
     cfg = load_config(config)
     rel = cfg["release"]
     api = HfApi()
-    api.create_repo(rel["hf_repo"], repo_type="dataset", private=True, exist_ok=True)
-    if not api.repo_info(rel["hf_repo"], repo_type="dataset").private:
-        raise SystemExit(f"{rel['hf_repo']} already exists and is PUBLIC; refusing to push")
+    api.create_repo(rel["hf_repo"], repo_type="dataset", private=False, exist_ok=True)
+    if api.repo_info(rel["hf_repo"], repo_type="dataset").private:
+        api.update_repo_settings(rel["hf_repo"], repo_type="dataset", private=False)
+        print(f"visibility set to public for {rel['hf_repo']}")
     api.upload_folder(folder_path=rel["dir"], repo_id=rel["hf_repo"],
                       repo_type="dataset", ignore_patterns=["dataset-metadata.json"],
-                      commit_message="Upload UTA-RLDD face features")
-    print(f"uploaded (private) → https://huggingface.co/datasets/{rel['hf_repo']}")
+                      commit_message="Upload UTA-RLDD face features (CC BY 4.0)")
+    print(f"uploaded (public, CC BY 4.0) → https://huggingface.co/datasets/{rel['hf_repo']}")
 
 
 @app.command("upload-kaggle")
 def upload_kaggle(owner: str = typer.Option(..., help="Kaggle username"),
                   config: str = "configs/default.yaml"):
-    """Create (private) or version the Kaggle dataset. Needs ~/.kaggle/kaggle.json."""
+    """Create (public) or version the Kaggle dataset. Needs ~/.kaggle/kaggle.json."""
     cfg = load_config(config)
     out = Path(cfg["release"]["dir"])
     (out / "dataset-metadata.json").write_text(
         json.dumps(kaggle_metadata(owner, cfg), indent=2))
     ref = f"{owner}/{cfg['release']['slug']}"
     exists = subprocess.run(["kaggle", "datasets", "status", ref],
-                            capture_output=True).returncode == 0
-    # no --public flag: `create` makes the dataset private by default
+                            capture_output=True, check=False).returncode == 0
+    # -u makes create public (private by default); -t keeps parquet as parquet
     cmd = (["kaggle", "datasets", "version", "-m", "Update features"] if exists
-           else ["kaggle", "datasets", "create"])
-    subprocess.run([*cmd, "-p", str(out), "-r", "zip"], check=True)
-    print(f"uploaded (private) → https://www.kaggle.com/datasets/{ref}")
+           else ["kaggle", "datasets", "create", "--public"])
+    subprocess.run([*cmd, "-p", str(out), "-r", "zip", "-t"], check=True)
+    print(f"uploaded (public, CC BY 4.0) → https://www.kaggle.com/datasets/{ref}")
 
 
 if __name__ == "__main__":

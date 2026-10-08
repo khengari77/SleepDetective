@@ -16,4 +16,9 @@ data/features/*
 *.task
 .pytest_cache/
 data/archives/
+MEMORY.md
 data/release/
+.env
+data/*.log
+.mimocode/
+.prime/

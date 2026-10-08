@@ -21,7 +21,7 @@ import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision as mp_vision
 
-EXTRACTOR_VERSION = 1
+EXTRACTOR_VERSION = 2
 
 # Pinned model asset (C7: exact Google weights, versioned URL — not "latest").
 LANDMARKER_URL = (
@@ -77,13 +77,25 @@ def ensure_landmarker_model(path: str | Path) -> Path:
     return path
 
 
-def make_landmarker(model_path: str | Path) -> mp_vision.FaceLandmarker:
+def landmarker_thresholds(ex: dict | None = None) -> dict:
+    """Confidence thresholds for FaceLandmarkerOptions (defaults 0.5)."""
+    ex = ex or {}
+    return {
+        "min_face_detection_confidence": ex.get("min_face_detection_confidence", 0.5),
+        "min_face_presence_confidence": ex.get("min_face_presence_confidence", 0.5),
+        "min_tracking_confidence": ex.get("min_tracking_confidence", 0.5),
+    }
+
+
+def make_landmarker(model_path: str | Path, ex: dict | None = None) -> mp_vision.FaceLandmarker:
+    thresholds = landmarker_thresholds(ex)
     options = mp_vision.FaceLandmarkerOptions(
         base_options=mp_python.BaseOptions(model_asset_path=str(model_path)),
         running_mode=mp_vision.RunningMode.VIDEO,
         num_faces=1,
         output_face_blendshapes=True,
         output_facial_transformation_matrixes=True,
+        **thresholds,
     )
     return mp_vision.FaceLandmarker.create_from_options(options)
 
@@ -212,10 +224,10 @@ class FrameSampler:
 
 
 def detection_rate(video_path, model_path, rotation_deg: int, target_fps: float,
-                   max_processed: int) -> float:
+                   max_processed: int, ex: dict | None = None) -> float:
     """Fraction of the first `max_processed` sampled frames with a face."""
     detected = processed = 0
-    with make_landmarker(model_path) as lm:
+    with make_landmarker(model_path, ex) as lm:
         last_ts = -1
         for _, t, frame in FrameSampler(video_path, rotation_deg, target_fps):
             ts = max(int(t * 1000), last_ts + 1)
@@ -235,30 +247,37 @@ def choose_rotation(video_path, model_path, cfg) -> tuple[int, str]:
     ex = cfg["extract"]
     rotation = probe_rotation_metadata(video_path)
     rate = detection_rate(video_path, model_path, rotation, ex["target_fps"],
-                          ex["rotation_probe_frames"])
+                          ex["rotation_probe_frames"], ex)
     if rate >= 1 - ex["rotation_fail_rate"]:
         return rotation, f"metadata rotation {rotation}° (probe detect rate {rate:.2f})"
     rates = {rotation: rate}
     for cand in (0, 90, 180, 270):
         if cand not in rates:
             rates[cand] = detection_rate(video_path, model_path, cand,
-                                         ex["target_fps"], ex["rotation_probe_frames"])
+                                         ex["target_fps"], ex["rotation_probe_frames"], ex)
     best = max(rates, key=rates.get)
     return best, f"probed rotations {rates} → {best}°"
 
 
 def extract_video(video_path: str | Path, out_path: str | Path, cfg: dict,
-                  meta: dict) -> dict:
-    """Extract per-frame features for one video → parquet. Returns stats."""
-    model_path = ensure_landmarker_model(cfg["paths"]["landmarker_task"])
-    target_fps = cfg["extract"]["target_fps"]
+                  meta: dict, rotation: int | None = None) -> dict:
+    """Extract per-frame features for one video → parquet. Returns stats.
 
-    rotation, rotation_note = choose_rotation(video_path, model_path, cfg)
+    If `rotation` is given, skip probing and reuse it (retry pass).
+    """
+    model_path = ensure_landmarker_model(cfg["paths"]["landmarker_task"])
+    ex = cfg["extract"]
+    target_fps = ex["target_fps"]
+
+    if rotation is not None:
+        rotation_note = f"reused rotation {rotation}° (skipped probe)"
+    else:
+        rotation, rotation_note = choose_rotation(video_path, model_path, cfg)
     print(f"  {Path(video_path).name}: {rotation_note}")
 
     rows = []
     sampler = FrameSampler(video_path, rotation, target_fps)
-    with make_landmarker(model_path) as lm:
+    with make_landmarker(model_path, ex) as lm:
         last_ts = -1
         for frame_idx, t, frame in sampler:
             ts = max(int(t * 1000), last_ts + 1)
@@ -283,6 +302,7 @@ def extract_video(video_path: str | Path, out_path: str | Path, cfg: dict,
     float_cols = df.columns.difference(["face_detected", "n_faces", "frame_idx"])
     df[float_cols] = df[float_cols].astype(np.float32)
 
+    thresholds = landmarker_thresholds(ex)
     metadata = {
         **meta,
         "source_fps": f"{src_fps:.4f}",
@@ -293,6 +313,7 @@ def extract_video(video_path: str | Path, out_path: str | Path, cfg: dict,
         "target_fps": str(target_fps),
         "extractor_version": str(EXTRACTOR_VERSION),
         "mediapipe_version": mp.__version__,
+        **{k: str(v) for k, v in thresholds.items()},
     }
     table = pa.Table.from_pandas(df, preserve_index=False)
     table = table.replace_schema_metadata(

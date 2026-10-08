@@ -131,6 +131,22 @@ class TestRetrySelection:
 
         assert list(todo["archive_id"]) == ["fold1_part1"]
 
+    def test_done_archive_with_pending_member_is_reselected(self, tmp_path):
+        """Late-registered pending members (e.g. a video missing from the
+        first pass) must reopen a done archive — otherwise resume strands
+        them forever."""
+        cfg = make_cfg(tmp_path)
+        seed_archives(cfg, ["done"])
+        m = Manifests(cfg)
+        m.videos = pd.DataFrame([
+            {**dict.fromkeys(MANIFEST_COLUMNS, ""), "video_id": "f1_s01_c00",
+             "status": "pending", "attempts": 0, "archive_id": "fold1_part1"},
+        ])
+
+        todo = select_archives(m, max_attempts=3)
+
+        assert list(todo["archive_id"]) == ["fold1_part1"]
+
 
 class TestDiskSpaceGate:
     def test_passes_with_reasonable_requirement(self, tmp_path):

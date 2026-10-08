@@ -12,7 +12,7 @@ f1_s04_c00,Fold1_part1/04/0.mp4,Fold1_part1/04/0.mp4,1,04,0,63598959,mp4,done,0,
 f1_s04_c05,Fold1_part1/04/5.mp4,Fold1_part1/04/5.mp4,1,04,5,698932216,mp4,done,0,data/features/f1_s04_c05.parquet,2026-07-12T12:46:47+00:00,,fold1_part1
 f1_s04_c10,Fold1_part1/04/10.mp4,Fold1_part1/04/10.mp4,1,04,10,63024482,mp4,done,0,data/features/f1_s04_c10.parquet,2026-07-12T15:57:16+00:00,,fold1_part1
 f1_s05_c00,Fold1_part1/05/0.MOV,Fold1_part1/05/0.MOV,1,05,0,354142515,mov,done,0,data/features/f1_s05_c00.parquet,2026-07-15T11:22:36+00:00,,fold1_part1
-f1_s05_c05,Fold1_part1/05/5.MOV,Fold1_part1/05/5.MOV,1,05,5,346431792,mov,failed,1,data/features/f1_s05_c05.parquet,,face_detected rate 0.45 < 0.5,fold1_part1
+f1_s05_c05,Fold1_part1/05/5.MOV,Fold1_part1/05/5.MOV,1,05,5,346431792,mov,failed,3,data/features/f1_s05_c05.parquet,,face_detected rate 0.42 < 0.5,fold1_part1
 f1_s05_c10,Fold1_part1/05/10.MOV,Fold1_part1/05/10.MOV,1,05,10,525105790,mov,done,0,data/features/f1_s05_c10.parquet,2026-07-15T11:35:52+00:00,,fold1_part1
 f1_s06_c00,Fold1_part1/06/0.mp4,Fold1_part1/06/0.mp4,1,06,0,1306635253,mp4,done,0,data/features/f1_s06_c00.parquet,2026-07-15T11:46:42+00:00,,fold1_part1
 f1_s06_c05,Fold1_part1/06/5.mp4,Fold1_part1/06/5.mp4,1,06,5,939485077,mp4,done,0,data/features/f1_s06_c05.parquet,2026-07-15T11:55:13+00:00,,fold1_part1
@@ -27,7 +27,7 @@ f1_s09_c00,Fold1_part2/09/0.mp4,Fold1_part2/09/0.mp4,1,09,0,563085810,mp4,done,0
 f1_s09_c05,Fold1_part2/09/5.mp4,Fold1_part2/09/5.mp4,1,09,5,682905896,mp4,done,0,data/features/f1_s09_c05.parquet,2026-07-15T13:33:35+00:00,,fold1_part2
 f1_s09_c10,Fold1_part2/09/10.mp4,Fold1_part2/09/10.mp4,1,09,10,642409702,mp4,done,0,data/features/f1_s09_c10.parquet,2026-07-15T13:52:20+00:00,,fold1_part2
 f1_s10_c00,Fold1_part2/10/0.MOV,Fold1_part2/10/0.MOV,1,10,0,20739103,mov,done,0,data/features/f1_s10_c00.parquet,2026-07-15T13:54:06+00:00,,fold1_part2
-f1_s10_c05,Fold1_part2/10/5.MOV,Fold1_part2/10/5.MOV,1,10,5,434558488,mov,failed,1,data/features/f1_s10_c05.parquet,,face_detected rate 0.45 < 0.5,fold1_part2
+f1_s10_c05,Fold1_part2/10/5.MOV,Fold1_part2/10/5.MOV,1,10,5,434558488,mov,done,2,data/features/f1_s10_c05.parquet,2026-10-07T11:54:11+00:00,no video file found after download of Fold1_part2/Fold1_part2/10/5.MOV,fold1_part2
 f1_s10_c10,Fold1_part2/10/10.MOV,Fold1_part2/10/10.MOV,1,10,10,643112050,mov,done,0,data/features/f1_s10_c10.parquet,2026-07-15T14:07:51+00:00,,fold1_part2
 f1_s11_c00,Fold1_part2/11/0.mp4,Fold1_part2/11/0.mp4,1,11,0,634260739,mp4,done,0,data/features/f1_s11_c00.parquet,2026-07-15T14:14:11+00:00,,fold1_part2
 f1_s11_c05,Fold1_part2/11/5.mp4,Fold1_part2/11/5.mp4,1,11,5,339916887,mp4,done,0,data/features/f1_s11_c05.parquet,2026-07-15T14:18:34+00:00,,fold1_part2
@@ -59,9 +59,9 @@ f2_s19_c10,Fold2_part2/19/10.MOV,Fold2_part2/19/10.MOV,2,19,10,1298265636,mov,do
 f2_s20_c00,Fold2_part2/20/0.mp4,Fold2_part2/20/0.mp4,2,20,0,304148805,mp4,done,0,data/features/f2_s20_c00.parquet,2026-07-15T21:54:20+00:00,,fold2_part2
 f2_s20_c05,Fold2_part2/20/5.MOV,Fold2_part2/20/5.MOV,2,20,5,1167809309,mov,done,0,data/features/f2_s20_c05.parquet,2026-07-15T22:07:35+00:00,,fold2_part2
 f2_s20_c10,Fold2_part2/20/10.mp4,Fold2_part2/20/10.mp4,2,20,10,85175261,mp4,done,0,data/features/f2_s20_c10.parquet,2026-07-15T22:09:42+00:00,,fold2_part2
-f2_s21_c00,Fold2_part2/21/0.MOV,Fold2_part2/21/0.MOV,2,21,0,349713882,mov,failed,1,data/features/f2_s21_c00.parquet,,face_detected rate 0.29 < 0.5,fold2_part2
+f2_s21_c00,Fold2_part2/21/0.MOV,Fold2_part2/21/0.MOV,2,21,0,349713882,mov,failed,3,data/features/f2_s21_c00.parquet,,face_detected rate 0.39 < 0.5,fold2_part2
 f2_s21_c05,Fold2_part2/21/5.MOV,Fold2_part2/21/5.MOV,2,21,5,346908283,mov,done,0,data/features/f2_s21_c05.parquet,2026-07-15T22:21:05+00:00,,fold2_part2
-f2_s21_c10,Fold2_part2/21/10.MOV,Fold2_part2/21/10.MOV,2,21,10,346300618,mov,failed,1,data/features/f2_s21_c10.parquet,,face_detected rate 0.42 < 0.5,fold2_part2
+f2_s21_c10,Fold2_part2/21/10.MOV,Fold2_part2/21/10.MOV,2,21,10,346300618,mov,done,2,data/features/f2_s21_c10.parquet,2026-10-07T12:04:05+00:00,no video file found after download of Fold2_part2/Fold2_part2/21/10.MOV,fold2_part2
 f2_s22_c00,Fold2_part2/22/0.MOV,Fold2_part2/22/0.MOV,2,22,0,1306421316,mov,done,0,data/features/f2_s22_c00.parquet,2026-07-16T08:02:05+00:00,,fold2_part2
 f2_s22_c05,Fold2_part2/22/5.MOV,Fold2_part2/22/5.MOV,2,22,5,1308306120,mov,done,0,data/features/f2_s22_c05.parquet,2026-07-16T08:15:35+00:00,,fold2_part2
 f2_s22_c10,Fold2_part2/22/10.MOV,Fold2_part2/22/10.MOV,2,22,10,1311110231,mov,done,0,data/features/f2_s22_c10.parquet,2026-07-16T08:28:40+00:00,,fold2_part2
@@ -82,7 +82,7 @@ f3_s27_c05,Fold3_part1/27/5.MOV,Fold3_part1/27/5.MOV,3,27,5,328160175,mov,done,0
 f3_s27_c10,Fold3_part1/27/10.MOV,Fold3_part1/27/10.MOV,3,27,10,199160037,mov,done,0,data/features/f3_s27_c10.parquet,2026-07-16T10:42:30+00:00,,fold3_part1
 f3_s28_c00,Fold3_part1/28/0.MOV,Fold3_part1/28/0.MOV,3,28,0,521625679,mov,done,0,data/features/f3_s28_c00.parquet,2026-07-16T10:48:45+00:00,,fold3_part1
 f3_s28_c05,Fold3_part1/28/5.MOV,Fold3_part1/28/5.MOV,3,28,5,655424932,mov,done,0,data/features/f3_s28_c05.parquet,2026-07-16T10:53:17+00:00,,fold3_part1
-f3_s28_c10,Fold3_part1/28/10.MOV,Fold3_part1/28/10.MOV,3,28,10,560136362,mov,failed,1,data/features/f3_s28_c10.parquet,,face_detected rate 0.43 < 0.5,fold3_part1
+f3_s28_c10,Fold3_part1/28/10.MOV,Fold3_part1/28/10.MOV,3,28,10,560136362,mov,done,2,data/features/f3_s28_c10.parquet,2026-10-07T12:09:44+00:00,no video file found after download of Fold3_part1/Fold3_part1/28/10.MOV,fold3_part1
 f3_s29_c00,Fold3_part1/29/0.mp4,Fold3_part1/29/0.mp4,3,29,0,643651404,mp4,done,0,data/features/f3_s29_c00.parquet,2026-07-16T11:04:03+00:00,,fold3_part1
 f3_s29_c05,Fold3_part1/29/5.mp4,Fold3_part1/29/5.mp4,3,29,5,279584194,mp4,done,0,data/features/f3_s29_c05.parquet,2026-07-16T11:07:38+00:00,,fold3_part1
 f3_s29_c10,Fold3_part1/29/10.mp4,Fold3_part1/29/10.mp4,3,29,10,366486293,mp4,done,0,data/features/f3_s29_c10.parquet,2026-07-16T11:12:37+00:00,,fold3_part1
@@ -96,7 +96,7 @@ f3_s32_c00,Fold3_part2/32/0.mp4,Fold3_part2/32/0.mp4,3,32,0,504682355,mp4,done,0
 f3_s32_c05,Fold3_part2/32/5.mp4,Fold3_part2/32/5.mp4,3,32,5,439670575,mp4,done,0,data/features/f3_s32_c05.parquet,2026-07-16T12:13:15+00:00,,fold3_part2
 f3_s33_c00,Fold3_part2/33/0.mp4,Fold3_part2/33/0.mp4,3,33,0,745167898,mp4,done,0,data/features/f3_s33_c00.parquet,2026-07-16T12:19:55+00:00,,fold3_part2
 f3_s33_c05,Fold3_part2/33/5.mp4,Fold3_part2/33/5.mp4,3,33,5,764045660,mp4,done,0,data/features/f3_s33_c05.parquet,2026-07-16T12:26:04+00:00,,fold3_part2
-f3_s33_c10,Fold3_part2/33/10.mp4,Fold3_part2/33/10.mp4,3,33,10,710170373,mp4,failed,2,data/features/f3_s33_c10.parquet,,face_detected rate 0.16 < 0.5,fold3_part2
+f3_s33_c10,Fold3_part2/33/10.mp4,Fold3_part2/33/10.mp4,3,33,10,710170373,mp4,failed,3,data/features/f3_s33_c10.parquet,,face_detected rate 0.23 < 0.5,fold3_part2
 f3_s34_c00,Fold3_part2/34/0.mov,Fold3_part2/34/0.mov,3,34,0,383104278,mov,done,0,data/features/f3_s34_c00.parquet,2026-07-16T12:37:28+00:00,,fold3_part2
 f3_s34_c05,Fold3_part2/34/5.mov,Fold3_part2/34/5.mov,3,34,5,676506896,mov,done,0,data/features/f3_s34_c05.parquet,2026-07-16T12:44:29+00:00,,fold3_part2
 f3_s34_c10,Fold3_part2/34/10.mp4,Fold3_part2/34/10.mp4,3,34,10,393121841,mp4,done,0,data/features/f3_s34_c10.parquet,2026-07-16T12:46:47+00:00,,fold3_part2
@@ -124,9 +124,9 @@ f4_s41_c10,Fold4_part1/41/10.MOV,Fold4_part1/41/10.MOV,4,41,10,928026903,mov,don
 f4_s42_c00,Fold4_part2/42/0.mp4,Fold4_part2/42/0.mp4,4,42,0,1508751833,mp4,done,0,data/features/f4_s42_c00.parquet,2026-07-20T09:43:36+00:00,,fold4_part2
 f4_s42_c05,Fold4_part2/42/5.mp4,Fold4_part2/42/5.mp4,4,42,5,306247467,mp4,done,0,data/features/f4_s42_c05.parquet,2026-07-20T09:46:00+00:00,,fold4_part2
 f4_s42_c10,Fold4_part2/42/10.mp4,Fold4_part2/42/10.mp4,4,42,10,1509485111,mp4,done,0,data/features/f4_s42_c10.parquet,2026-07-20T09:55:04+00:00,,fold4_part2
-f4_s43_c00,Fold4_part2/43/0.mov,Fold4_part2/43/0.mov,4,43,0,803896983,mov,failed,1,data/features/f4_s43_c00.parquet,,face_detected rate 0.32 < 0.5,fold4_part2
+f4_s43_c00,Fold4_part2/43/0.mov,Fold4_part2/43/0.mov,4,43,0,803896983,mov,failed,3,data/features/f4_s43_c00.parquet,,face_detected rate 0.39 < 0.5,fold4_part2
 f4_s43_c05,Fold4_part2/43/5.mp4,Fold4_part2/43/5.mp4,4,43,5,804090174,mp4,done,0,data/features/f4_s43_c05.parquet,2026-07-20T10:05:06+00:00,,fold4_part2
-f4_s43_c10,Fold4_part2/43/10.mov,Fold4_part2/43/10.mov,4,43,10,802229011,mov,failed,1,data/features/f4_s43_c10.parquet,,face_detected rate 0.33 < 0.5,fold4_part2
+f4_s43_c10,Fold4_part2/43/10.mov,Fold4_part2/43/10.mov,4,43,10,802229011,mov,failed,3,data/features/f4_s43_c10.parquet,,face_detected rate 0.39 < 0.5,fold4_part2
 f4_s44_c00,Fold4_part2/44/0.mov,Fold4_part2/44/0.mov,4,44,0,243912641,mov,done,0,data/features/f4_s44_c00.parquet,2026-07-20T10:14:03+00:00,,fold4_part2
 f4_s44_c05,Fold4_part2/44/5.mov,Fold4_part2/44/5.mov,4,44,5,243440043,mov,done,0,data/features/f4_s44_c05.parquet,2026-07-20T10:17:55+00:00,,fold4_part2
 f4_s44_c10,Fold4_part2/44/10.mov,Fold4_part2/44/10.mov,4,44,10,241511479,mov,done,0,data/features/f4_s44_c10.parquet,2026-07-20T10:22:10+00:00,,fold4_part2
@@ -138,7 +138,7 @@ f4_s46_c05,Fold4_part2/46/5.m4v,Fold4_part2/46/5.m4v,4,46,5,435788165,m4v,done,0
 f4_s46_c10,Fold4_part2/46/10.mov,Fold4_part2/46/10.mov,4,46,10,581762931,mov,done,0,data/features/f4_s46_c10.parquet,2026-07-20T10:43:50+00:00,,fold4_part2
 f4_s47_c00,Fold4_part2/47/0.mp4,Fold4_part2/47/0.mp4,4,47,0,1297269444,mp4,done,0,data/features/f4_s47_c00.parquet,2026-07-20T10:56:22+00:00,,fold4_part2
 f4_s47_c05,Fold4_part2/47/5.mp4,Fold4_part2/47/5.mp4,4,47,5,1297296336,mp4,done,0,data/features/f4_s47_c05.parquet,2026-07-20T11:08:50+00:00,,fold4_part2
-f4_s47_c10,Fold4_part2/47/10.mp4,Fold4_part2/47/10.mp4,4,47,10,1319711292,mp4,failed,1,data/features/f4_s47_c10.parquet,,face_detected rate 0.42 < 0.5,fold4_part2
+f4_s47_c10,Fold4_part2/47/10.mp4,Fold4_part2/47/10.mp4,4,47,10,1319711292,mp4,done,2,data/features/f4_s47_c10.parquet,2026-10-07T12:45:55+00:00,no video file found after download of Fold4_part2/Fold4_part2/47/10.mp4,fold4_part2
 f4_s48_c00,Fold4_part2/48/0.MOV,Fold4_part2/48/0.MOV,4,48,0,837168413,mov,done,0,data/features/f4_s48_c00.parquet,2026-07-20T11:31:56+00:00,,fold4_part2
 f4_s48_c05,Fold4_part2/48/5.MOV,Fold4_part2/48/5.MOV,4,48,5,804892978,mov,done,0,data/features/f4_s48_c05.parquet,2026-07-20T11:42:10+00:00,,fold4_part2
 f4_s48_c10,Fold4_part2/48/10.MOV,Fold4_part2/48/10.MOV,4,48,10,812817320,mov,done,0,data/features/f4_s48_c10.parquet,2026-07-20T11:53:43+00:00,,fold4_part2

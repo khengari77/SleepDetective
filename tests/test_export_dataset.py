@@ -7,11 +7,13 @@ import pyarrow as pa
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from src.derived_features import FEATURE_NAMES
 from src.export_dataset import (METADATA_COLUMNS, kaggle_metadata, metadata_row,
                                 render_card, with_identity_columns)
 
 CFG = {
     "verify": {"min_face_detected_rate": 0.50},
+    "windows": {"length_sec": 60.0, "stride_sec": 15.0, "max_undetected_frac": 0.30},
     "release": {"title": "T", "slug": "t-slug", "hf_repo": "me/t-slug"},
 }
 
@@ -67,3 +69,15 @@ def test_card_lists_failed_videos_and_counts():
 
 def test_kaggle_metadata_id():
     assert kaggle_metadata("someone", CFG)["id"] == "someone/t-slug"
+
+
+def test_card_windows_section_only_when_windows_given():
+    meta = pd.DataFrame([metadata_row(row(), make_table([True]))], columns=METADATA_COLUMNS)
+    assert "windows.parquet" not in render_card(meta, 10, CFG)
+    w = pd.DataFrame({"subject_id": ["01", "01"], "class_label": [0, 10],
+                      "passed_verification": True, "valid_frac": 1.0})
+    for f in FEATURE_NAMES:
+        w[f] = [0.0, 1.0]
+    card = render_card(meta, 10, CFG, w)
+    assert "config_name: windows" in card
+    assert "| `perclos` |" in card and "| 1 / 0 |" in card

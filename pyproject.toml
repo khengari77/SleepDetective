@@ -25,6 +25,7 @@ dependencies = [
     "torch>=2.13.0",
     "tqdm>=4.68.4",
     "huggingface-hub>=2.1.1",
+    "python-dotenv>=1.2.2",
 ]
 
 # CPU-only torch (PLAN.md §6: no GPU dependency anywhere in the project)
