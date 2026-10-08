@@ -13,7 +13,6 @@ from __future__ import annotations
 import csv
 import re
 import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -23,20 +22,67 @@ import yaml
 
 app = typer.Typer(add_completion=False)
 
-MANIFEST_COLUMNS = [
+# Static identity/provenance — the committed lockfile.
+MANIFEST_LOCK_COLUMNS = [
     "video_id", "source_path", "download_ref", "fold", "subject_id",
-    "class_label", "expected_size_bytes", "container", "status", "attempts",
-    "feature_file", "extracted_at", "error_msg",
+    "class_label", "expected_size_bytes", "container",
 ]
+# Runtime acquire-loop state — gitignored *.state.csv sidecar.
+MANIFEST_STATE_COLUMNS = ["status", "attempts", "feature_file",
+                          "extracted_at", "error_msg"]
+MANIFEST_COLUMNS = MANIFEST_LOCK_COLUMNS + MANIFEST_STATE_COLUMNS
+MANIFEST_DEFAULTS = {"status": "pending", "attempts": 0, "feature_file": "",
+                     "extracted_at": "", "error_msg": ""}
 
 VIDEO_EXTENSIONS = {".mov", ".mp4", ".m4v", ".avi"}
 CLASS_LABELS = {"0", "5", "10"}
 
 # The official Drive distribution ships 10 zip archives, one per fold-part
 # (Fold1_part1.zip .. Fold5_part2.zip), ~11 GB each — not individual videos.
-ARCHIVE_COLUMNS = ["archive_id", "download_ref", "fold", "part",
-                   "expected_size_bytes", "status", "attempts", "error_msg"]
+ARCHIVE_LOCK_COLUMNS = ["archive_id", "download_ref", "fold", "part",
+                        "expected_size_bytes"]
+ARCHIVE_STATE_COLUMNS = ["status", "attempts", "error_msg"]
+ARCHIVE_COLUMNS = ARCHIVE_LOCK_COLUMNS + ARCHIVE_STATE_COLUMNS
+ARCHIVE_DEFAULTS = {"status": "pending", "attempts": 0, "error_msg": ""}
 ARCHIVE_RE = re.compile(r"fold\s*_?(\d)_part\s*_?(\d)\.zip$", re.IGNORECASE)
+
+
+def state_path(lock_path) -> Path:
+    """Runtime-state sidecar next to a committed lockfile (gitignored)."""
+    p = Path(lock_path)
+    return p.with_name(p.stem + ".state.csv")
+
+
+def load_level(lock_path, key, state_cols, defaults, dtype=None):
+    """Load a lockfile joined with its *.state.csv sidecar.
+
+    Tolerates legacy combined files that still embed the state columns:
+    they become the initial state when no sidecar exists yet.
+    """
+    lock = pd.read_csv(lock_path, dtype=dtype)
+    embedded = [c for c in state_cols if c in lock.columns]
+    side = state_path(lock_path)
+    if side.exists():
+        state = pd.read_csv(side, dtype=dtype)
+    elif embedded:
+        state = lock[[key] + embedded].copy()
+    else:
+        state = pd.DataFrame({key: lock[key]})
+    lock = lock.drop(columns=embedded)
+    for col in state_cols:
+        if col not in state.columns:
+            state[col] = defaults[col]
+    merged = lock.merge(state[[key] + list(state_cols)], on=key, how="left")
+    for col in state_cols:
+        merged[col] = merged[col].fillna(defaults[col])
+    return merged
+
+
+def load_video_manifest(cfg: dict) -> pd.DataFrame:
+    """Video manifest as consumers expect it: lockfile + runtime state."""
+    return load_level(
+        cfg["paths"]["manifest"], "video_id", MANIFEST_STATE_COLUMNS,
+        MANIFEST_DEFAULTS, dtype={"subject_id": str})
 
 
 def build_archive_manifest(files: list[tuple[str, int | None, str]]) -> tuple[pd.DataFrame, list[str]]:
@@ -293,7 +339,7 @@ def build(
         print(report)
         out = Path(cfg["paths"]["archive_manifest"])
         out.parent.mkdir(parents=True, exist_ok=True)
-        archives.to_csv(out, index=False)
+        archives[ARCHIVE_LOCK_COLUMNS].to_csv(out, index=False)
         print(f"\nwrote {out} ({len(archives)} archives)")
         print("Per-video manifest rows are registered as each archive is opened "
               "during extraction (Drive distributes zips, not videos).")
@@ -309,7 +355,7 @@ def build(
     print(report)
     out = Path(cfg["paths"]["manifest"])
     out.parent.mkdir(parents=True, exist_ok=True)
-    manifest.to_csv(out, index=False)
+    manifest[MANIFEST_LOCK_COLUMNS].to_csv(out, index=False)
     print(f"\nwrote {out} ({len(manifest)} rows)")
     if not ok:
         print("Validation FAILED — review the problems above before extraction (PLAN.md §3).")
@@ -320,7 +366,7 @@ def build(
 def validate(config: str = "configs/default.yaml"):
     """Re-validate an existing data/manifest.csv."""
     cfg = load_config(config)
-    manifest = pd.read_csv(cfg["paths"]["manifest"], dtype={"subject_id": str})
+    manifest = load_video_manifest(cfg)
     ok, report = validate_manifest(manifest, cfg)
     print(report)
     raise typer.Exit(code=0 if ok else 1)

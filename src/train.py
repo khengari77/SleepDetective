@@ -10,7 +10,6 @@ Usage:
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import torch
 import typer
 from sklearn.metrics import f1_score
@@ -18,7 +17,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
 from src.evaluate import cross_validate, save_report
-from src.manifest import load_config
+from src.manifest import load_config, load_video_manifest
 from src.model import FeatureScaler, make_model
 from src.windows import build_dataset
 
@@ -100,7 +99,7 @@ def train_one_fold(train_idx: np.ndarray, test_idx: np.ndarray, ds: dict,
 
 def run_experiment(cfg: dict, *, normalized: bool, target: str,
                    feature_set: str = "core", report_name: str | None = None) -> dict:
-    manifest = pd.read_csv(cfg["paths"]["manifest"], dtype={"subject_id": str})
+    manifest = load_video_manifest(cfg)
     ds = build_dataset(manifest, cfg, normalized=normalized, target=target,
                        feature_set=feature_set)
     n_classes = 3 if target == "3class" else 2

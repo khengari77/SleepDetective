@@ -20,5 +20,6 @@ MEMORY.md
 data/release/
 .env
 data/*.log
+data/*.state.csv
 .mimocode/
 .prime/

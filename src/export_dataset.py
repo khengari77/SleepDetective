@@ -36,7 +36,7 @@ from src.derived_features import (
     subject_agreement,
     video_windows,
 )
-from src.manifest import load_config
+from src.manifest import load_config, load_video_manifest
 
 app = typer.Typer(add_completion=False)
 
@@ -321,7 +321,7 @@ def build(config: str = "configs/default.yaml"):
     cfg = load_config(config)
     out = Path(cfg["release"]["dir"])
     (out / "features").mkdir(parents=True, exist_ok=True)
-    manifest = pd.read_csv(cfg["paths"]["manifest"], dtype={"subject_id": str})
+    manifest = load_video_manifest(cfg)
     features_dir = Path(cfg["paths"]["features_dir"])
 
     rows, window_rows, n_columns = [], [], 0

@@ -16,7 +16,7 @@ import pandas as pd
 import typer
 
 from src.extract import EXTRACTOR_VERSION
-from src.manifest import load_config
+from src.manifest import load_config, load_video_manifest
 from src.verify import verify_feature_file
 
 app = typer.Typer(add_completion=False)
@@ -132,7 +132,7 @@ def build_report(manifest: pd.DataFrame, cfg: dict) -> str:
 @app.command()
 def write(config: str = "configs/default.yaml"):
     cfg = load_config(config)
-    manifest = pd.read_csv(cfg["paths"]["manifest"], dtype={"subject_id": str})
+    manifest = load_video_manifest(cfg)
     manifest["error_msg"] = manifest["error_msg"].fillna("")
     manifest["feature_file"] = manifest["feature_file"].fillna("")
     report = build_report(manifest, cfg)

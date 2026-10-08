@@ -20,7 +20,7 @@ from sklearn.metrics import f1_score
 from sklearn.neighbors import NearestCentroid
 
 from src.evaluate import cross_validate, save_report
-from src.manifest import load_config
+from src.manifest import load_config, load_video_manifest
 from src.windows import build_dataset, load_features
 
 app = typer.Typer(add_completion=False)
@@ -283,7 +283,7 @@ def run_b2_b3(manifest: pd.DataFrame, cfg: dict, *, normalized: bool, target: st
 def matrix(config: str = "configs/default.yaml"):
     """The B1/B2/B3 quadrants of the results matrix (PLAN §7)."""
     cfg = load_config(config)
-    manifest = pd.read_csv(cfg["paths"]["manifest"], dtype={"subject_id": str})
+    manifest = load_video_manifest(cfg)
     for target in ("3class", "binary"):
         run_b1(manifest, cfg, target=target)
         for normalized in (False, True):

@@ -18,7 +18,19 @@ import pandas as pd
 import typer
 
 from src.extract import extract_video
-from src.manifest import MANIFEST_COLUMNS, build_manifest, load_config
+from src.manifest import (
+    ARCHIVE_DEFAULTS,
+    ARCHIVE_LOCK_COLUMNS,
+    ARCHIVE_STATE_COLUMNS,
+    MANIFEST_COLUMNS,
+    MANIFEST_LOCK_COLUMNS,
+    MANIFEST_STATE_COLUMNS,
+    build_manifest,
+    load_config,
+    load_level,
+    load_video_manifest,
+    state_path,
+)
 from src.verify import verify_feature_file
 
 app = typer.Typer(add_completion=False)
@@ -41,18 +53,26 @@ class Manifests:
     def __init__(self, cfg: dict):
         self.archive_path = Path(cfg["paths"]["archive_manifest"])
         self.video_path = Path(cfg["paths"]["manifest"])
-        self.archives = pd.read_csv(self.archive_path)
+        self.archives = load_level(
+            self.archive_path, "archive_id", ARCHIVE_STATE_COLUMNS,
+            ARCHIVE_DEFAULTS)
         self.archives["error_msg"] = self.archives["error_msg"].fillna("")
         if self.video_path.exists():
-            self.videos = pd.read_csv(self.video_path, dtype={"subject_id": str})
+            self.videos = load_video_manifest(cfg)
             self.videos["error_msg"] = self.videos["error_msg"].fillna("")
             self.videos["feature_file"] = self.videos["feature_file"].fillna("")
         else:
             self.videos = pd.DataFrame(columns=MANIFEST_COLUMNS + ["archive_id"])
 
     def flush(self):
-        self.archives.to_csv(self.archive_path, index=False)
-        self.videos.to_csv(self.video_path, index=False)
+        """Lockfiles hold identity/provenance; state goes to sidecars."""
+        self.archives[ARCHIVE_LOCK_COLUMNS].to_csv(self.archive_path, index=False)
+        self.archives[["archive_id"] + ARCHIVE_STATE_COLUMNS].to_csv(
+            state_path(self.archive_path), index=False)
+        self.videos[MANIFEST_LOCK_COLUMNS + ["archive_id"]].to_csv(
+            self.video_path, index=False)
+        self.videos[["video_id"] + MANIFEST_STATE_COLUMNS].to_csv(
+            state_path(self.video_path), index=False)
 
     def reset_stale(self):
         """downloading/extracting are crash leftovers → pending (C2)."""
