@@ -9,3 +9,17 @@ share
 *.MOV
 *.mp4
 
+.venv/
+data/tmp/
+data/features/*
+!data/features/.gitkeep
+*.task
+.pytest_cache/
+data/archives/
+MEMORY.md
+data/release/
+.env
+data/*.log
+data/*.state.csv
+.mimocode/
+.prime/

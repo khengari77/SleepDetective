@@ -1,0 +1,71 @@
+---
+# SleepDetective v2 — default experiment configuration (PLAN.md §2)
+
+paths:
+  manifest: data/manifest.csv
+  archive_manifest: data/manifest_archives.csv
+  features_dir: data/features
+  tmp_dir: data/tmp
+  archives_dir: data/archives # prefetched zips; each deleted after extraction
+  reports_dir: reports
+  landmarker_task: data/face_landmarker_v2_with_blendshapes.task
+
+dataset:
+  # official distribution: https://sites.google.com/view/utarldd/home
+  gdrive_folder: >-
+    https://drive.google.com/drive/folders/1d_QwgpMXnLY_FmLYXDn7TLcw0D-svXEl
+  kaggle_slug: rishab260/uta-reallife-drowsiness-dataset
+  n_subjects: 60
+  videos_per_subject: 3
+  n_folds: 5
+  subjects_per_fold: 12
+  class_labels: [0, 5, 10]
+
+acquire:
+  max_attempts: 3
+  # refuse download if free < expected_archive_size * factor + margin (C1)
+  free_space_factor: 1.5
+  free_space_margin_gb: 5.0
+
+extract:
+  target_fps: 10.0
+  extractor_version: 2
+  # MediaPipe FaceLandmarker confidence thresholds (retry pass lowers these)
+  min_face_detection_confidence: 0.5
+  min_face_presence_confidence: 0.5
+  min_tracking_confidence: 0.5
+  # rotation sanity heuristic (PLAN.md §4.1)
+  rotation_probe_frames: 300
+  rotation_fail_rate: 0.8
+
+verify:
+  row_count_tolerance: 0.10
+  min_face_detected_rate: 0.50
+
+windows:
+  length_sec: 60.0
+  stride_sec: 15.0
+  max_undetected_frac: 0.30
+  ffill_max_gap_sec: 0.5
+  calibration_sec: 60.0 # per-subject baseline, excluded from train/test
+
+model:
+  kind: gru # gru | tcn
+  hidden_size: 64
+  num_layers: 1
+  dropout: 0.2
+
+train:
+  batch_size: 64
+  lr: 1.0e-3
+  max_epochs: 100
+  early_stop_patience: 10
+  val_subjects_per_fold: 2 # carved out of training folds BY SUBJECT
+  seed: 77
+
+release:
+  # public under CC BY 4.0 (user decision, 2025-10-08)
+  dir: data/release
+  title: UTA-RLDD Face Features
+  slug: uta-rldd-face-features
+  hf_repo: khengari77/uta-rldd-face-features
